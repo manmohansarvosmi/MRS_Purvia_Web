@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from 'sonner';
 
+import api from '@/src/lib/api';
+
 interface AddProductProps {
   onBack: () => void;
   onSuccess: () => void;
@@ -33,27 +35,15 @@ export const AddProduct = ({ onBack, onSuccess }: AddProductProps) => {
     const payload = Object.fromEntries(formData.entries());
 
     try {
-      const response = await fetch('/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        toast.success('ASSET REGISTERED', {
-          description: 'Product added to inventory ledger.',
-          className: 'bg-emerald-500 text-white font-black italic border-none'
-        });
-        onSuccess();
-      } else {
-        toast.error('REGISTRATION FAILED');
-      }
-    } catch (error) {
-      toast.success('ASSET SIMULATED', {
-        description: 'Inventory updated (Dev Mode).',
-        className: 'bg-blue-500 text-white font-black italic border-none'
+      const response = await api.post('/inventory', payload);
+      
+      toast.success('ASSET REGISTERED', {
+        description: 'Product added to inventory ledger.',
+        className: 'bg-emerald-500 text-white font-black italic border-none'
       });
       onSuccess();
+    } catch (error) {
+      toast.error('REGISTRATION FAILED');
     } finally {
       setIsLoading(false);
     }

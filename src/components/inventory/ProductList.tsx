@@ -24,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from '../../types';
 import { toast } from 'sonner';
 import { cn } from "@/src/lib/utils";
-import { AddProduct } from './AddProduct';
+import api from '@/src/lib/api';
 
 export const ProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -35,28 +35,24 @@ export const ProductList = () => {
   const fetchInventory = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/inventory');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      } else {
-        // Mock data
-        setProducts([
-          {
-            id: '1',
-            name: 'Solar Panel 400W',
-            sku: 'SP-400W-01',
-            category: 'Hardware',
-            quantity: 45,
-            unit: 'pcs',
-            purchasePrice: 12000,
-            salePrice: 15000,
-            minStockLevel: 10,
-            warrantyMonths: 24
-          }
-        ]);
-      }
+      const response = await api.get('/inventory');
+      setProducts(response.data);
     } catch (error) {
+      // Mock data in case of error
+      setProducts([
+        {
+          id: '1',
+          name: 'Solar Panel 400W',
+          sku: 'SP-400W-01',
+          category: 'Hardware',
+          quantity: 45,
+          unit: 'pcs',
+          purchasePrice: 12000,
+          salePrice: 15000,
+          minStockLevel: 10,
+          warrantyMonths: 24
+        }
+      ]);
       toast.error('MATRIX SYNC FAILED');
     } finally {
       setIsLoading(false);

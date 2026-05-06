@@ -208,21 +208,12 @@ export const RouteTracking = () => {
   useEffect(() => {
     const fetchLivePersonnel = async () => {
       try {
-        const token = localStorage.getItem('userToken');
-        const response = await fetch('/api/tracking/live', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          const result = await response.json();
-          const data = result.data || result; // Handle BaseResponse if necessary
-          setPersonnel(data);
-          // Only auto-select if no employee is selected yet
-          if (data.length > 0 && !selectedEmp && allEmployees.length === 0) {
-            setSelectedEmp(data[0]);
-          }
+        const response = await api.get('/tracking/live');
+        const data = response.data.data || response.data; // Handle BaseResponse if necessary
+        setPersonnel(data);
+        // Only auto-select if no employee is selected yet
+        if (data.length > 0 && !selectedEmp && allEmployees.length === 0) {
+          setSelectedEmp(data[0]);
         }
       } catch (error) {
         console.error("Live tracking sync failed", error);

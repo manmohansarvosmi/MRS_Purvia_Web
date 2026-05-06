@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
 import logo from '../../assets/mrs_logo.png';
 
+import api from '@/src/lib/api';
+
 interface LoginPageProps {
   onLogin: (token: string) => void;
 }
@@ -20,38 +22,28 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
     setIsLoading(true);
 
     try {
-      // API Integration
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
+      // API Integration using axios instance
+      const response = await api.post('/auth/login', { username, password });
+      const data = response.data;
 
-      const data = await response.json();
+      // Handle both standard and BaseResponse structures
+      const token = data.data?.token || data.token;
 
-      if (response.ok) {
-        // Handle both standard and BaseResponse structures
-        const token = data.data?.token || data.token;
-
-        if (token) {
-          localStorage.setItem('userToken', token);
-          toast.success('LOGIN SUCCESSFUL', {
-            description: 'Welcome back to Purvia ERP.',
-          });
-          onLogin(token);
-        } else {
-          toast.error('AUTH ERROR', {
-            description: 'Token not found in server response.',
-          });
-        }
+      if (token) {
+        localStorage.setItem('userToken', token);
+        toast.success('LOGIN SUCCESSFUL', {
+          description: 'Welcome back to Purvia ERP.',
+        });
+        onLogin(token);
       } else {
-        toast.error('LOGIN FAILED', {
-          description: data.message || 'Invalid username or password.',
+        toast.error('AUTH ERROR', {
+          description: 'Token not found in server response.',
         });
       }
-    } catch (error) {
-      toast.error('CONNECTION ERROR', {
-        description: 'Server unreachable. Please try again.',
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Invalid username or password.';
+      toast.error('LOGIN FAILED', {
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
