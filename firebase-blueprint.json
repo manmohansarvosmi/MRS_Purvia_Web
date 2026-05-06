@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "Employee profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "empId": { "type": "string" },
+        "designation": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "salaryType": { "type": "string", "enum": ["monthly", "per-day", "per-hour"] },
+        "baseRate": { "type": "number" },
+        "joiningDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "role": { "type": "string", "enum": ["admin", "hr", "manager", "staff"] }
+      },
+      "required": ["name", "empId", "salaryType", "baseRate"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance record with punch times and locations",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "punchInTime": { "type": "string", "format": "date-time" },
+        "punchOutTime": { "type": "string", "format": "date-time" },
+        "punchInLocation": { "type": "object" },
+        "punchOutLocation": { "type": "object" },
+        "status": { "type": "string", "enum": ["present", "half-day", "absent", "leave"] },
+        "leaveType": { "type": "string", "enum": ["full", "half", "none"] }
+      },
+      "required": ["employeeId", "date", "status"]
+    },
+    "RouteLog": {
+      "title": "RouteLog",
+      "description": "GPS coordinates for route tracking",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "points": { "type": "array" }
+      }
+    },
+    "Salary": {
+      "title": "Salary",
+      "description": "Monthly salary calculation and record",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "month": { "type": "number" },
+        "year": { "type": "number" },
+        "baseSalary": { "type": "number" },
+        "deductions": { "type": "number" },
+        "allowances": { "type": "number" },
+        "netSalary": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "paid"] },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory product details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "salePrice": { "type": "number" },
+        "minStockLevel": { "type": "number" },
+        "warrantyMonths": { "type": "number" }
+      }
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sales invoice and customer record",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
+        "items": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "employees": { "schema": "Employee", "description": "Collection of employee profiles" },
+    "attendance": { "schema": "Attendance", "description": "Daily attendance logs" },
+    "routeLogs": { "schema": "RouteLog", "description": "GPS route tracking history" },
+    "salaries": { "schema": "Salary", "description": "Monthly salary records" },
+    "inventory": { "schema": "Product", "description": "Inventory stock list" },
+    "sales": { "schema": "Sale", "description": "Sales history and invoices" }
+  }
+}

@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // For development, we'll allow any signed-in user with a specific email or if the document exists
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/employees/$(request.auth.uid)) ? 
+        get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == 'admin' :
+        request.auth.token.email.matches('.*admin.*') || request.auth.token.email == 'manmohan.shrivas@sarvosmi.io'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Employees Collection
+    match /employees/{employeeId} {
+      allow read: if true; // Public read for matrix transparency
+      allow write: if isSignedIn(); // Allow enrolling if signed in
+      allow update: if isSignedIn();
+    }
+
+    // Attendance Collection
+    match /attendance/{attendanceId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Route Logs Collection
+    match /routeLogs/{logId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Salary Collection
+    match /salaries/{salaryId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Inventory Collection
+    match /inventory/{productId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Sales Collection
+    match /sales/{saleId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}

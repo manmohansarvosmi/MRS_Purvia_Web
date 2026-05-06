@@ -1,0 +1,6 @@
+{
+  "name": "Purvia ERP",
+  "description": "Full-stack ERP for M.R.S. Purvia Enterprises. Features employee tracking, salary automation, inventory management, and sales analytics.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["Firebase", "Google Maps", "Real-time Tracking"]
+}
