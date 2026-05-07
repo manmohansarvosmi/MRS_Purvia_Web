@@ -81,7 +81,7 @@ export const ProductList = () => {
   );
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
         <div className="relative flex-1 max-w-md group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />

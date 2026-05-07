@@ -133,7 +133,7 @@ export const AttendanceView = () => {
   const dayStatus = selectedDay ? (statusConfig[selectedDay.status.toLowerCase()] || statusConfig.present) : statusConfig.present;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

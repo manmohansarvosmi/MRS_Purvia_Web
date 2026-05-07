@@ -36,6 +36,16 @@ export default function App() {
     }
   }, []);
 
+  // Listen for token expiry event dispatched by the API interceptor
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      setIsAuthenticated(false);
+      setActiveTab('dashboard');
+    };
+    window.addEventListener('auth:logout', handleAuthLogout);
+    return () => window.removeEventListener('auth:logout', handleAuthLogout);
+  }, []);
+
   const handleLogin = (token: string) => {
     setIsAuthenticated(true);
   };
@@ -91,37 +101,13 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="h-screen bg-[#F8FAFC] overflow-hidden flex flex-col lg:flex-row">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block shrink-0">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 bg-white border-b border-slate-100 z-40 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 text-slate-500 hover:text-primary transition-colors"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-black text-primary tracking-tighter italic">M.R.S. PURVIA</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-primary transition-colors">
-            <LogOut className="w-5 h-5" />
-          </button>
-          <div className="w-9 h-9 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
-            <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun" 
-              alt="Profile" 
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        </div>
-      </header>
+
 
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
@@ -150,12 +136,40 @@ export default function App() {
       </AnimatePresence>
 
       <main className={cn(
-        "min-h-screen transition-all duration-300 pb-24 lg:pb-0 flex flex-col",
+        "flex-1 h-full transition-all duration-300 pb-24 lg:pb-0 flex flex-col overflow-hidden",
         "lg:pl-64"
       )}>
-        <div className="flex-1 px-2 lg:px-4 py-6 overflow-y-auto custom-scrollbar">
+        <TopBar 
+          title={getPageTitle()} 
+          onMenuClick={() => setIsSidebarOpen(true)} 
+          onLogout={handleLogout}
+        />
+        <div className="flex-1 flex flex-col min-h-0">
           {renderContent()}
         </div>
+
+        {/* Footer Bar — Desktop only */}
+        <footer className="hidden lg:flex h-10 shrink-0 items-center justify-between px-8 border-t border-slate-200 bg-white/90 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+            © 2026 Helixion Innovations LLP · All rights reserved
+          </p>
+          <a 
+            href="https://helixioninnovations.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-all duration-300 group"
+            title="Powered by Helixion Innovations LLP"
+          >
+            <img 
+              src="https://helixioninnovations.com/favicon.ico" 
+              alt="Helixion" 
+              className="w-5 h-5 rounded-md shadow-sm group-hover:scale-110 transition-transform"
+            />
+            <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest border-b border-transparent group-hover:border-slate-400 transition-all">
+              Helixion Innovations
+            </span>
+          </a>
+        </footer>
       </main>
 
       {/* Bottom Navigation (Mobile Only) */}

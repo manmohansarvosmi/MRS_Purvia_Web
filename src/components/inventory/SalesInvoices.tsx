@@ -41,7 +41,7 @@ export const SalesInvoices = () => {
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight italic uppercase">Sales Acquisition</h1>

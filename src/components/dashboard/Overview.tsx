@@ -63,7 +63,7 @@ const recentActivity = [
 
 export const Overview = () => {
   return (
-    <div className="space-y-6 pb-12">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
       {/* Top Header Section */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -406,7 +406,7 @@ export const RouteTracking = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] lg:h-[calc(100vh-40px)] overflow-hidden bg-slate-50">
+    <div className="flex flex-col flex-1 min-h-0 bg-slate-50 overflow-hidden p-4 lg:p-6 gap-6">
       
       {/* Header with Employee Selector */}
       <div className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-8 py-4 flex items-center justify-between shrink-0 sticky top-0 z-20">
@@ -473,8 +473,93 @@ export const RouteTracking = () => {
         </div>
       </div>
 
+      {/* Route History — Compact Horizontal Strip */}
+      <div className="shrink-0 bg-white border border-slate-200/60 rounded-2xl overflow-hidden">
+        {/* Strip Header */}
+        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center">
+              <Calendar className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
+                Route History Archives
+              </h3>
+              <p className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                <span className="text-indigo-600 font-black">{selectedEmp?.name || 'Select Personnel'}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span>{attendanceList.length} Records</span>
+              </p>
+            </div>
+          </div>
+          {selectedAttendance && (
+            <Button 
+              onClick={() => setIsReportView(true)} 
+              className="h-8 rounded-xl bg-slate-900 text-white text-[9px] font-black uppercase gap-2 px-4 shadow-md hover:bg-primary transition-all active:scale-95 group"
+            >
+              <FileText className="w-3 h-3 group-hover:rotate-12 transition-transform" /> 
+              Report
+            </Button>
+          )}
+        </div>
+
+        {/* Horizontal scroll strip */}
+        <div className="overflow-x-auto custom-scrollbar-h">
+          <div className="flex gap-3 p-3" style={{ minWidth: 'max-content' }}>
+            {attendanceList.length > 0 ? (
+              attendanceList.map((att, idx) => (
+                <motion.button
+                  key={att.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  onClick={() => { setViewMode('history'); setSelectedAttendance(att); }}
+                  className={cn(
+                    "flex items-center gap-4 px-4 py-2.5 rounded-xl border transition-all duration-300 shrink-0 text-left",
+                    selectedAttendance?.id === att.id && viewMode === 'history'
+                      ? "bg-primary/5 border-primary ring-2 ring-primary/20 shadow-md"
+                      : "bg-slate-50 border-slate-100 hover:bg-white hover:shadow-sm hover:border-slate-200"
+                  )}
+                >
+                  {/* Route number badge */}
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                    selectedAttendance?.id === att.id ? "bg-primary text-white" : "bg-white border border-slate-200 text-slate-400"
+                  )}>
+                    <Navigation className="w-3.5 h-3.5" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-900">{formatIST(att.punchInTime, 'date')}</span>
+                      {att.punchOutTime ? (
+                        <span className="text-[7px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase">Archived</span>
+                      ) : (
+                        <span className="text-[7px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded uppercase animate-pulse">On-Going</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500">
+                      <Clock className="w-2.5 h-2.5" />
+                      <span>{formatIST(att.punchInTime, 'time')}</span>
+                      <ChevronRight className="w-2.5 h-2.5 text-slate-300" />
+                      <span>{att.punchOutTime ? formatIST(att.punchOutTime, 'time') : '...'}</span>
+                    </div>
+                  </div>
+                </motion.button>
+              ))
+            ) : (
+              <div className="flex items-center gap-3 px-4 py-3 text-slate-400">
+                <Calendar className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase">Select an employee to view history</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main Map Area */}
-      <div className="relative h-[45%] min-h-[400px] w-full border-b border-slate-200/60 overflow-hidden">
+      <div className="relative flex-1 min-h-[300px] w-full border border-slate-200/60 rounded-[2rem] overflow-hidden shrink-0 shadow-inner">
         <MapContainer
           center={selectedEmp?.coordinates || [28.6139, 77.2090]}
           zoom={13}
@@ -544,119 +629,6 @@ export const RouteTracking = () => {
         </div>
       </div>
 
-      {/* Bottom Area: Attendance History */}
-      <div className="flex-1 flex flex-col bg-[#F8FAFC] overflow-hidden">
-        <div className="px-10 py-6 border-b border-slate-200/60 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-              <Calendar className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                {viewMode === 'live' ? 'Movement Intelligence' : 'Route History Archives'}
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 flex items-center gap-2">
-                <span className="text-indigo-600 font-black">{selectedEmp?.name}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span>{attendanceList.length} Historical Records</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {selectedAttendance && (
-              <Button 
-                onClick={() => setIsReportView(true)} 
-                className="h-11 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase gap-3 px-8 shadow-xl shadow-slate-200 hover:bg-primary transition-all active:scale-95 group"
-              >
-                <FileText className="w-4 h-4 group-hover:rotate-12 transition-transform" /> 
-                Open Intelligent Report
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-10 custom-scrollbar-h flex items-center">
-          <div className="flex gap-8 pb-4">
-            {attendanceList.length > 0 ? (
-              attendanceList.map((att, idx) => (
-                <motion.div
-                  key={att.id}
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="w-[320px] shrink-0"
-                >
-                  <Card 
-                    onClick={() => { setViewMode('history'); setSelectedAttendance(att); }}
-                    className={cn(
-                      "group cursor-pointer border-none shadow-sm transition-all duration-500 overflow-hidden relative",
-                      selectedAttendance?.id === att.id && viewMode === 'history' 
-                        ? "ring-[3px] ring-primary bg-white shadow-2xl shadow-primary/10 scale-[1.02]" 
-                        : "bg-white hover:shadow-xl hover:-translate-y-1"
-                    )}
-                  >
-                    <div className="h-24 bg-slate-50 relative overflow-hidden flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-                         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]" />
-                      </div>
-                      <Navigation className={cn(
-                        "w-10 h-10 transition-all duration-700",
-                        selectedAttendance?.id === att.id ? "text-primary scale-125 rotate-[360deg]" : "text-slate-200 group-hover:text-primary/20 group-hover:scale-110"
-                      )} />
-                      <div className="absolute bottom-2 left-4 px-2 py-0.5 bg-white/80 backdrop-blur-sm rounded-md border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Route #{att.id}</span>
-                      </div>
-                    </div>
-                    
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm font-black text-slate-900">{formatIST(att.punchInTime, 'date')}</p>
-                        {att.punchOutTime ? (
-                          <Badge variant="outline" className="text-[8px] font-bold text-slate-400 bg-slate-50 border-slate-100">ARCHIVED</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[8px] font-black text-emerald-500 bg-emerald-50 border-emerald-100 animate-pulse">ON-GOING</Badge>
-                        )}
-                      </div>
-                      
-                      <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">Start</span>
-                            <span className="text-[11px] font-black text-slate-700">{formatIST(att.punchInTime, 'time')}</span>
-                          </div>
-                          <ChevronRight className="w-3 h-3 text-slate-300" />
-                          <div className="flex flex-col items-end">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">End</span>
-                            <span className="text-[11px] font-black text-slate-700">{att.punchOutTime ? formatIST(att.punchOutTime, 'time') : '...'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                           <Clock className="w-3 h-3 text-primary/40" />
-                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Duty Log</span>
-                         </div>
-                         <div className={cn(
-                           "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
-                           selectedAttendance?.id === att.id ? "bg-primary text-white shadow-lg" : "bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white"
-                         )}>
-                           <ArrowLeft className="w-4 h-4 rotate-180" />
-                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
-            ) : (
-              <div className="w-full flex flex-col items-center justify-center py-20">
-                <Calendar className="w-12 h-12 text-slate-200 mb-4" />
-                <p className="text-[10px] font-black text-slate-400 uppercase">Retrieving Archives...</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
 
       <style dangerouslySetInnerHTML={{ __html: `

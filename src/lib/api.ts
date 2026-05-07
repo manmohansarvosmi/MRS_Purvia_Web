@@ -23,6 +23,21 @@ api.interceptors.request.use(
     }
 );
 
+// Add a response interceptor to handle token expiry (401 only)
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error?.response?.status;
+        // 401 = token expired / invalid → logout
+        // 403 = forbidden (no permission) → do NOT logout, just reject
+        if (status === 401) {
+            localStorage.removeItem('userToken');
+            window.dispatchEvent(new Event('auth:logout'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const attendanceApi = {
     getCalendar: async (userId: string, month: string) => {
         const response = await api.get(`/attendance/calendar?userId=${userId}&month=${month}`);
