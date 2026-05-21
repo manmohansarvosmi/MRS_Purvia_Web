@@ -1,54 +1,54 @@
 import React from 'react';
-import { ProductMaster } from './ProductMaster';
-import { InventoryLogs } from './InventoryLogs';
-import { WarehouseUnits } from './WarehouseUnits';
-import { StockAdjustment } from './StockAdjustment';
-import { PurchaseModule } from './PurchaseModule';
+import { GSTInvoiceForm } from './GSTInvoiceForm';
+import { CRMModule } from '../crm/CRMModule';
+import { QuotationModule } from './QuotationModule';
+import { SalesHistory } from './SalesHistory';
+import { POSModule } from './POSModule';
 import { cn } from '@/lib/utils';
 import { 
-  Box, 
+  FileText, 
+  Users, 
   History, 
-  Warehouse, 
-  Settings2,
-  ShoppingCart
+  CreditCard,
+  Zap,
+  Receipt
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const InventoryModule = ({ initialSubTab = 'items' }: { initialSubTab?: string }) => {
+export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string }) => {
   const [subTab, setSubTab] = React.useState(initialSubTab);
 
   React.useEffect(() => {
     setSubTab(initialSubTab);
   }, [initialSubTab]);
 
-  const renderInventoryContent = () => {
+  const renderContent = () => {
     switch (subTab) {
-      case 'items':
-        return <ProductMaster />;
-      case 'purchases':
-        return <PurchaseModule />;
-      case 'movement':
-        return <InventoryLogs />;
-      case 'warehouses':
-        return <WarehouseUnits />;
-      case 'adjustments':
-        return <StockAdjustment />;
+      case 'pos':
+        return <POSModule />;
+      case 'billing':
+        return <GSTInvoiceForm />;
+      case 'customers':
+        return <CRMModule />;
+      case 'quotations':
+        return <QuotationModule />;
+      case 'sales-logs':
+        return <SalesHistory />;
       default:
-        return <ProductMaster />;
+        return <POSModule />;
     }
   };
 
   const tabs = [
-    { id: 'items', label: 'Stock Master', icon: Box },
-    { id: 'purchases', label: 'Purchases / PO', icon: ShoppingCart },
-    { id: 'movement', label: 'Movement Logs', icon: History },
-    { id: 'warehouses', label: 'Warehouses', icon: Warehouse },
-    { id: 'adjustments', label: 'Adjustments', icon: Settings2 },
+    { id: 'pos', label: 'Retail POS', icon: Zap },
+    { id: 'billing', label: 'Tax Invoicing', icon: FileText },
+    { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'quotations', label: 'Estimates', icon: Receipt },
+    { id: 'sales-logs', label: 'Sales Logs', icon: History },
   ];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
-      {/* Module Header Bar */}
       <div className="px-8 bg-white border-b border-slate-100 flex items-center gap-10 overflow-x-auto no-scrollbar shrink-0">
         {tabs.map(tab => (
           <button
@@ -66,7 +66,7 @@ export const InventoryModule = ({ initialSubTab = 'items' }: { initialSubTab?: s
             {tab.label}
             {subTab === tab.id && (
               <motion.div 
-                layoutId="active-inv-tab" 
+                layoutId="active-sales-subtab" 
                 className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_8px_rgba(178,0,26,0.3)]" 
               />
             )}
@@ -74,9 +74,8 @@ export const InventoryModule = ({ initialSubTab = 'items' }: { initialSubTab?: s
         ))}
       </div>
       
-      {/* Content Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {renderInventoryContent()}
+        {renderContent()}
       </div>
     </div>
   );

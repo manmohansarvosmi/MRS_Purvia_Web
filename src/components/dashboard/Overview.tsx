@@ -3,9 +3,7 @@ import {
   TrendingUp, 
   TrendingDown,
   ArrowUpRight,
-  ArrowDownRight,
   Clock,
-  MapPin,
   ChevronRight,
   Calendar as CalendarIcon,
   Users,
@@ -13,7 +11,12 @@ import {
   IndianRupee,
   Activity,
   PieChart as PieChartIcon,
-  Play
+  Sparkles,
+  Layers,
+  ArrowRight,
+  Filter,
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -26,155 +29,157 @@ import {
   AreaChart,
   Area,
   PieChart,
-  Pie
+  Pie,
+  BarChart,
+  Bar
 } from 'recharts';
-import { cn } from '@/src/lib/utils';
+import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 
 const revenueData = [
-  { name: 'Mon', revenue: 45000, expenses: 32000 },
-  { name: 'Tue', revenue: 52000, expenses: 38000 },
-  { name: 'Wed', revenue: 48000, expenses: 35000 },
-  { name: 'Thu', revenue: 61000, expenses: 42000 },
-  { name: 'Fri', revenue: 55000, expenses: 40000 },
-  { name: 'Sat', revenue: 67000, expenses: 45000 },
-  { name: 'Sun', revenue: 42000, expenses: 30000 },
+  { name: 'Jan', revenue: 450000, expenses: 320000, profit: 130000 },
+  { name: 'Feb', revenue: 520000, expenses: 380000, profit: 140000 },
+  { name: 'Mar', revenue: 480000, expenses: 350000, profit: 130000 },
+  { name: 'Apr', revenue: 610000, expenses: 420000, profit: 190000 },
+  { name: 'May', revenue: 550000, expenses: 400000, profit: 150000 },
+  { name: 'Jun', revenue: 670000, expenses: 450000, profit: 220000 },
 ];
 
 const inventoryPieData = [
-  { name: 'Panels', value: 400, fill: '#B2001A' },
-  { name: 'Inverters', value: 300, fill: '#E11D2E' },
-  { name: 'Batteries', value: 200, fill: '#FCA5A5' },
-  { name: 'Wires', value: 278, fill: '#FECACA' },
+  { name: 'Electronics', value: 40, fill: '#6366F1' },
+  { name: 'Hardware', value: 30, fill: '#10B981' },
+  { name: 'FMCG', value: 20, fill: '#F59E0B' },
+  { name: 'Others', value: 10, fill: '#F43F5E' },
 ];
 
-const employeePerformance = [
-  { name: 'Sales', val: 85 },
-  { name: 'Installs', val: 92 },
-  { name: 'Support', val: 78 },
-  { name: 'Logistics', val: 88 },
-];
-
-const recentActivity = [
-  { date: 'Oct 23', time: '08:55 AM', status: 'ON TIME', color: 'emerald' },
-  { date: 'Oct 22', time: '09:12 AM', status: 'LATE', color: 'orange' },
-  { date: 'Oct 21', time: '08:58 AM', status: 'ON TIME', color: 'emerald' },
+const branchPerformance = [
+  { branch: 'Mumbai HQ', sales: 85, growth: 12 },
+  { branch: 'Delhi North', sales: 72, growth: 8 },
+  { branch: 'Bangalore IT', sales: 94, growth: 15 },
+  { branch: 'Kolkata East', sales: 68, growth: -3 },
 ];
 
 export const Overview = () => {
   return (
-    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
-      {/* Top Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            DASHBOARD <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          </h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Oct 24, 2023 • Tuesday • Noida Sector 62 HQ</p>
+    <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 custom-scrollbar bg-[#F8FAFC]">
+      {/* Dynamic Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Enterprise Overview</h1>
+            <div className="px-2 py-0.5 bg-brand-indigo/10 text-brand-indigo text-[10px] font-bold rounded-full border border-brand-indigo/20 uppercase tracking-wider">v2.4.0</div>
+          </div>
+          <div className="flex items-center gap-4 text-slate-500">
+            <p className="text-xs font-medium flex items-center gap-1.5">
+              <CalendarIcon className="w-3.5 h-3.5" />
+              May 14, 2026
+            </p>
+            <p className="text-xs font-medium flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              Last sync: 2 mins ago
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-colors">
-            Download Report
+        <div className="flex items-center gap-3">
+          <button className="btn-premium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">
+            <Filter className="w-4 h-4" /> Filter
           </button>
-          <button className="px-4 py-2 bg-primary text-white rounded-xl shadow-md text-[10px] font-black uppercase tracking-widest hover:bg-[#900015] transition-colors">
-            Generate Invoices
+          <button className="btn-premium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button className="btn-premium btn-primary bg-slate-900 text-white">
+            <PlusIcon className="w-4 h-4" /> New Transaction
           </button>
         </div>
       </header>
 
-      {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-none shadow-sm bg-white overflow-hidden relative custom-card-red-edge enterprise-card">
-          <CardContent className="p-5">
-            <div className="flex justify-between items-start">
-              <div className="p-2 bg-primary/5 rounded-lg text-primary">
-                <IndianRupee className="w-5 h-5" />
-              </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                <TrendingUp className="w-3 h-3" /> +12%
-              </div>
+      {/* AI Smart Banner */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative p-8 rounded-3xl overflow-hidden glass-morphism border border-slate-200 shadow-xl shadow-slate-200/50"
+      >
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-brand-indigo/5 to-transparent pointer-events-none" />
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+          <div className="flex-1 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-indigo text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-brand-indigo/20">
+              <Sparkles className="w-3.5 h-3.5" /> AI Business Assistant
             </div>
-            <div className="mt-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue MTD</p>
-              <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter mt-1">₹8,42,000</h3>
+            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-tight">
+              Good Morning, Admin! <br />
+              <span className="text-slate-500 font-medium text-lg lg:text-xl">
+                You have <span className="text-brand-rose font-bold">12 low-stock alerts</span> and 
+                <span className="text-brand-emerald font-bold"> ₹4.2L pending receivables</span> today.
+              </span>
+            </h2>
+            <div className="flex items-center gap-4">
+              <button className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all">Take Action</button>
+              <button className="px-6 py-2.5 text-slate-600 hover:text-slate-900 font-bold text-xs flex items-center gap-1 group">
+                View detailed insights <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Market Sentiment', value: 'BULLISH', color: 'emerald' },
+              { label: 'Risk Index', value: 'LOW', color: 'indigo' }
+            ].map((stat, i) => (
+              <div key={i} className="p-6 bg-white/50 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm text-center min-w-[140px]">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <div className={`text-xl font-bold text-brand-${stat.color}`}>{stat.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
 
-        <Card className="border-none shadow-sm bg-white overflow-hidden relative enterprise-card">
-          <CardContent className="p-5">
-            <div className="flex justify-between items-start">
-              <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
-                <TrendingDown className="w-5 h-5 text-orange-500" />
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Net Revenue', value: '₹24.8L', trend: '+12.4%', icon: IndianRupee, gradient: 'indigo' },
+          { label: 'Total Purchase', value: '₹18.2L', trend: '+8.2%', icon: Layers, gradient: 'emerald' },
+          { label: 'GST Payable', value: '₹1.2L', trend: 'Pending', icon: Activity, gradient: 'amber' },
+          { label: 'Active Leads', value: '1,248', trend: '+24%', icon: Users, gradient: 'rose' }
+        ].map((kpi, i) => (
+          <Card key={i} className="premium-card group">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div className={`p-3 rounded-2xl text-white stats-gradient-${kpi.gradient} shadow-lg shadow-${kpi.gradient}-500/20`}>
+                  <kpi.icon className="w-5 h-5" />
+                </div>
+                <div className={cn(
+                  "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
+                  kpi.gradient === 'indigo' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-100"
+                )}>
+                  {kpi.trend}
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md">
-                <Activity className="w-3 h-3" /> 24% Exp
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{kpi.label}</p>
+                <h3 className="text-2xl font-bold text-slate-900 group-hover:text-brand-indigo transition-colors">{kpi.value}</h3>
               </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Expenses</p>
-              <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter mt-1">₹3,12,000</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-white overflow-hidden relative enterprise-card">
-          <CardContent className="p-5">
-            <div className="flex justify-between items-start">
-              <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
-                <Users className="w-5 h-5 text-indigo-500" />
-              </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                Active 42
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Employees</p>
-              <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter mt-1">42 <span className="text-xs text-slate-400">Units</span></h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-white overflow-hidden relative enterprise-card">
-          <CardContent className="p-5">
-            <div className="flex justify-between items-start">
-              <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
-                <Package className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-md">
-                8 Alerts
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logistics / Inventory</p>
-              <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter mt-1">1,248 <span className="text-xs text-slate-400">SKUs</span></h3>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Main Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Sales & Revenue Trend - Wide */}
-        <Card className="lg:col-span-12 border-none shadow-sm bg-white overflow-hidden enterprise-card">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  Revenue vs Expenses Index
-                </CardTitle>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Real-time financial flow analysis</p>
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Revenue Chart */}
+        <Card className="lg:col-span-2 premium-card">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 p-6">
+            <div>
+              <CardTitle className="text-sm font-bold text-slate-900 uppercase tracking-widest">Financial Performance</CardTitle>
+              <p className="text-xs text-slate-500 mt-1">Monthly revenue vs expenses analysis</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-brand-indigo" />
+                <span className="text-[10px] font-bold text-slate-600">Revenue</span>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-[10px] font-bold uppercase">Revenue</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-200" />
-                  <span className="text-[10px] font-bold uppercase">Expenses</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                <span className="text-[10px] font-bold text-slate-600">Expenses</span>
               </div>
             </div>
           </CardHeader>
@@ -183,9 +188,9 @@ export const Overview = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueData}>
                   <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#B2001A" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#B2001A" stopOpacity={0}/>
+                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
@@ -194,21 +199,22 @@ export const Overview = () => {
                     axisLine={false} 
                     tickLine={false} 
                     fontSize={10} 
-                    fontWeight="bold"
+                    fontWeight="600"
                     tick={{ fill: '#94A3B8' }}
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
                     fontSize={10} 
-                    fontWeight="bold"
+                    fontWeight="600"
                     tick={{ fill: '#94A3B8' }}
                     tickFormatter={(val) => `₹${val/1000}k`}
                   />
                   <Tooltip 
-                    contentStyle={{ border: 'none', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    itemStyle={{ fontSize: '10px', fontWeight: '700' }}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#B2001A" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
                   <Area type="monotone" dataKey="expenses" stroke="#E2E8F0" strokeWidth={2} fill="transparent" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -216,45 +222,41 @@ export const Overview = () => {
           </CardContent>
         </Card>
 
-        {/* Inventory Distribution - Wide */}
-        <Card className="lg:col-span-12 border-none shadow-sm bg-white flex flex-col enterprise-card">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4 text-primary" />
-              Asset Matrix Distribution
-            </CardTitle>
+        {/* Inventory Matrix */}
+        <Card className="premium-card">
+          <CardHeader className="border-b border-slate-100 p-6">
+            <CardTitle className="text-sm font-bold text-slate-900 uppercase tracking-widest">Stock Composition</CardTitle>
+            <p className="text-xs text-slate-500 mt-1">Inventory distribution by category</p>
           </CardHeader>
-          <CardContent className="p-6 flex-1 flex flex-col md:flex-row items-center gap-12">
-            <div className="h-[300px] w-full md:w-1/2">
+          <CardContent className="p-6 space-y-8">
+            <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={inventoryPieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={5}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={8}
                     dataKey="value"
                   >
                     {inventoryPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-${index}`} fill={entry.fill} cornerRadius={4} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                     contentStyle={{ border: 'none', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                  />
+                  <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
-              {inventoryPieData.map((entry) => (
-                <div key={entry.name} className="flex flex-col gap-2 p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white transition-colors">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{entry.name}</span>
+            <div className="space-y-4">
+              {inventoryPieData.map((item, i) => (
+                <div key={i} className="flex items-center justify-between group cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{item.name}</span>
                   </div>
-                  <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{entry.value} <span className="text-[10px] not-italic text-slate-400 uppercase">Units</span></p>
+                  <span className="text-[11px] font-bold text-slate-900">{item.value}%</span>
                 </div>
               ))}
             </div>
@@ -262,91 +264,95 @@ export const Overview = () => {
         </Card>
       </div>
 
-      {/* Bottom Grid for Secondary Intelligence */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-6">
-        {/* Performance Metrics */}
-        <Card className="md:col-span-2 lg:col-span-4 border-none shadow-sm bg-white">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900">Core Performance Units</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            {employeePerformance.map((item) => (
-              <div key={item.name} className="space-y-2">
-                <div className="flex justify-between text-[10px] font-black uppercase italic tracking-widest">
-                  <span className="text-slate-600">{item.name} Efficiency</span>
-                  <span className="text-primary">{item.val}%</span>
+      {/* Operational Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Branch Performance */}
+        <Card className="premium-card overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Multi-Branch Analytics</h3>
+            <button className="text-[10px] font-bold text-brand-indigo hover:underline">View All Branches</button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="data-table-compact">
+              <thead>
+                <tr>
+                  <th>Branch Location</th>
+                  <th>Monthly Sales</th>
+                  <th>Efficiency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {branchPerformance.map((branch, i) => (
+                  <tr key={i}>
+                    <td className="font-bold text-slate-700">{branch.branch}</td>
+                    <td className="font-bold text-slate-900">₹{branch.sales}L</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
+                          <div className="h-full bg-brand-indigo" style={{ width: `${branch.sales}%` }} />
+                        </div>
+                        <span className="text-[10px] font-bold">{branch.sales}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={cn(
+                        "text-[9px] font-bold px-2 py-0.5 rounded-md uppercase",
+                        branch.growth > 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                      )}>
+                        {branch.growth > 0 ? `↑ ${branch.growth}%` : `↓ ${Math.abs(branch.growth)}%`}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* Low Stock Alerts */}
+        <Card className="premium-card">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-brand-rose" /> Critical Inventory
+            </h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-rose/10 text-brand-rose rounded-full">12 ALERTS</span>
+          </div>
+          <div className="p-0">
+            {[
+              { item: 'Solar Panels 450W', sku: 'INV-450-PAN', stock: 12, min: 50 },
+              { item: 'Lithium Battery 100Ah', sku: 'BATT-100-LI', stock: 5, min: 20 },
+              { item: 'Hybrid Inverter 5kVA', sku: 'INV-HYB-5K', stock: 2, min: 10 },
+              { item: 'DC Wires 4sqmm', sku: 'WIRE-DC-4', stock: 15, min: 100 },
+            ].map((alert, i) => (
+              <div key={i} className="p-4 border-b border-slate-50 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-bold text-slate-500 text-xs">
+                    {alert.item[0]}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">{alert.item}</h4>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase">{alert.sku}</p>
+                  </div>
                 </div>
-                <div className="h-2 w-full bg-slate-50 rounded-md overflow-hidden relative border border-slate-100">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${item.val}%` }}
-                    className="h-full bg-primary"
-                  />
+                <div className="text-right">
+                  <p className="text-xs font-bold text-brand-rose">{alert.stock} units left</p>
+                  <p className="text-[10px] font-medium text-slate-400">Min. req: {alert.min}</p>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Recent Operations */}
-        <Card className="md:col-span-1 lg:col-span-5 border-none shadow-sm bg-white">
-          <CardHeader className="p-6 border-b border-slate-50">
-             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900">Operational Log</CardTitle>
-              <button className="text-[10px] font-black text-primary hover:underline uppercase italic">Full Audit</button>
-             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-50">
-              {recentActivity.map((act, i) => (
-                <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center border",
-                      act.color === 'emerald' ? "bg-emerald-50 border-emerald-100" : "bg-orange-50 border-orange-100"
-                    )}>
-                      <CalendarIcon className={cn(
-                        "w-4 h-4",
-                        act.color === 'emerald' ? "text-emerald-600" : "text-orange-600"
-                      )} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-800">{act.date}</p>
-                      <p className="text-[10px] font-bold text-slate-400">{act.time} Distribution</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={cn(
-                      "text-[9px] font-black px-2.5 py-1 rounded-lg uppercase italic border",
-                      act.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"
-                    )}>
-                      {act.status}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Duty Control */}
-        <Card className="lg:col-span-3 border-none shadow-sm bg-slate-900 text-white flex flex-col justify-center items-center p-8 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-12 translate-x-12 blur-2xl" />
-          <div className="relative z-10 space-y-6">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/40">
-              <Clock className="w-8 h-8" />
-            </div>
-            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] italic">Time Matrix Active</h4>
-              <p className="text-[10px] text-slate-400 font-bold uppercase mt-2">SHIFT: NOON-01 PROTOCOL</p>
-            </div>
-            <button className="px-8 py-3 bg-white text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors active:scale-95">
-              Sync Attendance
-            </button>
+          </div>
+          <div className="p-4">
+            <button className="w-full py-2 bg-slate-50 text-slate-600 text-[10px] font-bold uppercase rounded-xl hover:bg-slate-100 transition-colors">Generate Purchase Orders</button>
           </div>
         </Card>
       </div>
     </div>
   );
 };
+
+const PlusIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);

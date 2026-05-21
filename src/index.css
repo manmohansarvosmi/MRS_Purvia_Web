@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
@@ -7,12 +7,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Poppins", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -41,124 +41,140 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  --color-brand-indigo: #4F46E5;
+  --color-brand-emerald: #10B981;
+  --color-brand-amber: #F59E0B;
+  --color-brand-rose: #E11D48;
 }
 
 @layer base {
-  html {
-    font-size: 10px; /* Strong zoom-out effect at 100% */
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-  }
   :root {
-    --background: hsl(210 40% 98%);
-    --foreground: hsl(222 47% 11%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(222 47% 11%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222 47% 11%);
-    --primary: #B2001A;
-    --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(210 40% 96.1%);
-    --secondary-foreground: hsl(222.2 47.4% 11.2%);
-    --muted: hsl(210 20% 96%);
-    --muted-foreground: hsl(215.4 16.3% 46.9%);
-    --accent: hsl(210 40% 96.1%);
-    --accent-foreground: hsl(222.2 47.4% 11.2%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(214.3 31.8% 91.4%);
-    --input: hsl(214.3 31.8% 91.4%);
-    --ring: #B2001A;
-    --radius: 0.5rem;
+    --background: #FFFFFF;
+    --foreground: #111827;
+    --card: #FFFFFF;
+    --card-foreground: #111827;
+    --popover: #FFFFFF;
+    --popover-foreground: #111827;
+    --primary: #CB0C1F; /* Rich Zomato-like Red */
+    --primary-foreground: #FFFFFF;
+    --secondary: #F3F4F6;
+    --secondary-foreground: #1F2937;
+    --muted: #F3F4F6;
+    --muted-foreground: #6B7280;
+    --accent: #F3F4F6;
+    --accent-foreground: #1F2937;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #CB0C1F;
+    --radius: 0.75rem;
+    
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --surface-sunken: #F9FAFB;
   }
 
   .dark {
-    --background: hsl(222 47% 4%);
-    --foreground: hsl(210 40% 98%);
-    --card: hsl(222 47% 6%);
-    --card-foreground: hsl(210 40% 98%);
-    --popover: hsl(222 47% 6%);
-    --popover-foreground: hsl(210 40% 98%);
-    --primary: #B2001A;
-    --primary-foreground: hsl(210 40% 98%);
-    --secondary: hsl(217.2 32.6% 17.5%);
-    --secondary-foreground: hsl(210 40% 98%);
-    --muted: hsl(217.2 32.6% 17.5%);
-    --muted-foreground: hsl(215 20.2% 65.1%);
-    --accent: hsl(217.2 32.6% 17.5%);
-    --accent-foreground: hsl(210 40% 98%);
-    --destructive: hsl(0 62.8% 30.6%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(217.2 32.6% 17.5%);
-    --input: hsl(217.2 32.6% 17.5%);
-    --ring: #B2001A;
+    --background: #030712;
+    --foreground: #F9FAFB;
+    --card: #111827;
+    --card-foreground: #F9FAFB;
+    --primary: #E11D48;
+    --border: #1F2937;
   }
-}
 
-@layer base {
+  html {
+    font-size: 10px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   * {
     border-color: var(--border);
+    @apply transition-colors duration-200;
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
-    overflow-x: hidden;
-    @apply font-sans antialiased;
+    @apply font-sans antialiased text-sm;
+    font-weight: 400; /* Clean, not bold */
+  }
+
+  /* Clean headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 
-.custom-card-red-edge {
-  position: relative;
-  overflow: hidden;
+/* Zomato/Amazon Style Premium Components */
+
+.premium-card {
+  @apply bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300;
+  border-radius: var(--radius);
 }
 
-.custom-card-red-edge::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background-color: var(--primary);
-  border-radius: 4px;
+.data-table-clean {
+  @apply w-full text-left border-collapse;
 }
 
-.bottom-nav-active {
-  color: var(--primary);
-  background-color: rgba(178, 0, 26, 0.05);
+.data-table-clean th {
+  @apply bg-gray-50/50 px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-100;
 }
 
-/* Enterprise Refinements */
-@layer base {
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #E2E8F0;
-    border-radius: 10px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #CBD5E1;
-  }
+.data-table-clean td {
+  @apply px-6 py-4 border-b border-gray-50 align-middle text-gray-700;
 }
 
-.enterprise-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+.data-table-clean tr:hover td {
+  @apply bg-gray-50/30;
 }
 
-.enterprise-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -1px rgba(0, 0, 0, 0.05), 0 4px 8px -1px rgba(0, 0, 0, 0.03);
+.data-table-compact {
+  @apply w-full text-left border-collapse;
 }
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.data-table-compact th {
+  @apply bg-slate-50/30 px-6 py-3.5 font-bold text-slate-400 uppercase tracking-wider text-[9px] border-b border-slate-100;
 }
+
+.data-table-compact td {
+  @apply px-6 py-3.5 border-b border-slate-50 align-middle text-slate-600 text-xs;
+}
+
+.data-table-compact tr:hover td {
+  @apply bg-slate-50/30;
+}
+
+/* Sidebar Clean Style */
+.sidebar-item-active {
+  @apply bg-red-50 text-primary font-semibold border-r-4 border-primary;
+}
+
+.sidebar-item-hover {
+  @apply hover:bg-gray-50 transition-all duration-200;
+}
+
+/* Button Refinements (Amazon/Flikpart style) */
+.btn-clean {
+  @apply px-6 py-2.5 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] rounded-lg;
+}
+
+.btn-clean-primary {
+  @apply bg-primary text-white hover:bg-red-700 shadow-sm shadow-red-100;
+}
+
+.btn-clean-secondary {
+  @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-50;
+}
+
+/* Modern Inputs (Minimalistic) */
+.input-clean {
+  @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-50 focus:border-primary transition-all outline-none text-sm font-normal text-gray-900 placeholder:text-gray-400;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full hover:bg-gray-300; }

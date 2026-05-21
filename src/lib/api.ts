@@ -58,6 +58,10 @@ export const salaryApi = {
         const response = await api.get('/salary/config');
         return response.data;
     },
+    getConfigByUser: async (userId: number) => {
+        const response = await api.get(`/salary/config/user/${userId}`);
+        return response.data;
+    },
     generatePayroll: async (month: string) => {
         const response = await api.post(`/salary/generate?month=${month}`);
         return response.data;

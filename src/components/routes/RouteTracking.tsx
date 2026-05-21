@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   MapPin,
   Navigation,
@@ -29,10 +29,13 @@ import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import { jsPDF } from 'jspdf';
+import { toJpeg } from 'html-to-image';
+import { toast } from 'sonner';
 
 // Fix for default marker icons in Leaflet with Vite
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+const markerIcon = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
+const markerShadow = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png';
 
 let DefaultIcon = L.icon({
   iconUrl: markerIcon,
@@ -40,8 +43,6 @@ let DefaultIcon = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41]
 });
-
-L.Marker.prototype.options.icon = DefaultIcon;
 
 const mockPersonnel = [
   {
@@ -76,6 +77,82 @@ const mockPersonnel = [
   }
 ];
 
+// ─── Reverse Geocoding: ArcGIS (FREE, no API key, no CORS issues, rich street/colony data) ───
+// Uses ArcGIS World Geocoding Service (client-side, no key needed for non-stored display)
+// Delivers highly accurate colony, street, and POI/landmark names in India.
+
+// Coordinates rounded to 4 decimal places (~11m) to group nearby GPS jitter
+const getCacheKey = (lat: number, lon: number): string =>
+  `geo_arcgis_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+
+const getCachedAddress = (lat: number, lon: number): any | null => {
+  try {
+    const raw = localStorage.getItem(getCacheKey(lat, lon));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
+const setCachedAddress = (lat: number, lon: number, data: any) => {
+  try { localStorage.setItem(getCacheKey(lat, lon), JSON.stringify(data)); }
+  catch { /* localStorage full – silently ignore */ }
+};
+
+const queueGeocode = async (lat: number, lon: number): Promise<any> => {
+  // 1. Check localStorage cache
+  const cached = getCachedAddress(lat, lon);
+  if (cached) return cached;
+
+  // 2. Fetch from ArcGIS (fast, free, rich POI/street data, no CORS blocks)
+  // ArcGIS requires longitude first, then latitude
+  try {
+    const res = await fetch(
+      `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&location=${lon},${lat}`
+    );
+    if (!res.ok) throw new Error(`ArcGIS HTTP ${res.status}`);
+    
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || "ArcGIS Error");
+
+    const addr = data.address || {};
+    
+    // Extract detailed location markers from ArcGIS response
+    const landmark = addr.PlaceName || "";
+    const street = addr.Address || addr.ShortLabel || "";
+    const area = addr.Sector || addr.Neighborhood || addr.District || "";
+    const city = addr.City || addr.Subregion || "";
+    
+    let colony = "";
+    if (landmark && landmark !== street) {
+      colony = landmark;
+      if (area) colony += ` (${area})`;
+      else if (street) colony += ` (${street})`;
+    } else if (street && street !== area) {
+      colony = street;
+      if (area) colony += ` (${area})`;
+    } else if (area) {
+      colony = area;
+    } else {
+      colony = "Area Not Named";
+    }
+
+    const display = addr.LongLabel || data.name || "Location Found";
+    
+    const result = { colony, city, display };
+    
+    // Save to cache
+    setCachedAddress(lat, lon, result);
+    return result;
+  } catch (e) {
+    console.error("ArcGIS Geocoding failed for", lat, lon, e);
+    // Fallback if network fails
+    return {
+      colony: "Location Unavailable",
+      city: "",
+      display: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+    };
+  }
+};
+
 // Component to handle map centering
 const RecenterMap = ({ coords }: { coords: [number, number] }) => {
   const map = useMap();
@@ -97,11 +174,22 @@ const FitRouteBounds = ({ path }: { path: [number, number][] }) => {
 };
 
 // Sub-component for individual address rows to avoid Hooks violation in map()
-const AddressRow = ({ point, formatIST, getAddress, setRoutePath, setIsReportOpen, setHighlightedPoint }: any) => {
-  const [addr, setAddr] = useState<string>("Fetching...");
+const AddressRow = ({ point, formatIST, getAddress, setRoutePath, setIsReportOpen, setHighlightedPoint, isPdfExport }: any) => {
+  const [addrObj, setAddrObj] = useState<any>(null);
   useEffect(() => {
-    getAddress(point.latitude, point.longitude).then(setAddr);
+    getAddress(point.latitude, point.longitude).then(setAddrObj);
   }, [point.latitude, point.longitude, getAddress]);
+
+  if (!addrObj) return (
+    <TableRow>
+      <TableCell className="py-6 px-10" colSpan={isPdfExport ? 2 : 3}>
+        <div className="flex items-center gap-3 animate-pulse">
+          <div className="w-8 h-8 bg-slate-100 rounded-lg"></div>
+          <div className="h-4 w-48 bg-slate-100 rounded"></div>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <TableRow className="group border-slate-100 hover:bg-slate-50/50 transition-all duration-300">
@@ -117,22 +205,26 @@ const AddressRow = ({ point, formatIST, getAddress, setRoutePath, setIsReportOpe
             <MapPin className="w-5 h-5 text-slate-400 group-hover:text-primary group-hover:scale-110 transition-all" />
           </div>
           <div className="pt-1.5">
-            <p className="text-xs font-bold text-slate-700 leading-relaxed">{addr}</p>
-            <span className="text-[9px] font-mono text-slate-400 mt-1 block">GPS: {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</span>
+            <p className="text-sm font-black text-slate-800 leading-tight uppercase tracking-tight">{addrObj.colony}</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-0.5">{addrObj.city}</p>
+            <p className="text-[9px] text-slate-400 mt-1.5 leading-relaxed opacity-60 font-medium">{addrObj.display}</p>
+            <span className="text-[9px] font-mono text-slate-400 mt-2 block bg-slate-50 w-fit px-2 py-0.5 rounded border border-slate-100">GPS: {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</span>
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-right py-6 px-10">
-        <Button 
-          onClick={() => {
-            setHighlightedPoint([point.latitude, point.longitude]);
-            setIsReportOpen(false);
-          }}
-          className="h-10 px-8 bg-slate-900 text-white hover:bg-primary text-[10px] font-black uppercase rounded-2xl transition-all shadow-xl shadow-slate-200 hover:shadow-primary/20 active:scale-95"
-        >
-          Locate Point
-        </Button>
-      </TableCell>
+      {!isPdfExport && (
+        <TableCell className="text-right py-6 px-10">
+          <Button 
+            onClick={() => {
+              setHighlightedPoint([point.latitude, point.longitude]);
+              setIsReportOpen(false);
+            }}
+            className="h-10 px-8 bg-slate-900 text-white hover:bg-primary text-[10px] font-black uppercase rounded-2xl transition-all shadow-xl shadow-slate-200 hover:shadow-primary/20 active:scale-95"
+          >
+            Locate Point
+          </Button>
+        </TableCell>
+      )}
     </TableRow>
   );
 };
@@ -168,30 +260,19 @@ export const RouteTracking = () => {
   const [reportInterval, setReportInterval] = useState(10); // minutes
   const [rawRouteData, setRawRouteData] = useState<any[]>([]);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
-  const [addressCache, setAddressCache] = useState<Record<string, string>>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   // Reverse Geocoding Function
-  const getAddress = async (lat: number, lon: number) => {
-    const key = `${lat},${lon}`;
-    if (addressCache[key]) return addressCache[key];
-    
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-      const data = await res.json();
-      const addr = data.display_name || "Location Found";
-      setAddressCache(prev => ({ ...prev, [key]: addr }));
-      return addr;
-    } catch (e) {
-      return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-    }
-  };
+  const getAddress = useCallback(async (lat: number, lon: number) => {
+    return queueGeocode(lat, lon);
+  }, []);
 
   // 0. Fetch all employees for dropdown
   useEffect(() => {
     const fetchAll = async () => {
       try {
         const result = await userApi.getAllUsers();
-        if (result.code === 1) {
+        if (result && result.code === 1 && Array.isArray(result.data)) {
           setAllEmployees(result.data);
           if (result.data.length > 0 && !selectedEmp) {
             setSelectedEmp(result.data[0]);
@@ -210,10 +291,12 @@ export const RouteTracking = () => {
       try {
         const response = await api.get('/tracking/live');
         const data = response.data.data || response.data; // Handle BaseResponse if necessary
-        setPersonnel(data);
-        // Only auto-select if no employee is selected yet
-        if (data.length > 0 && !selectedEmp && allEmployees.length === 0) {
-          setSelectedEmp(data[0]);
+        if (Array.isArray(data)) {
+          setPersonnel(data);
+          // Only auto-select if no employee is selected yet
+          if (data.length > 0 && !selectedEmp && allEmployees.length === 0) {
+            setSelectedEmp(data[0]);
+          }
         }
       } catch (error) {
         console.error("Live tracking sync failed", error);
@@ -227,51 +310,113 @@ export const RouteTracking = () => {
     return () => clearInterval(interval);
   }, [selectedEmp, viewMode, allEmployees.length]);
 
-  // 2. Fetch attendance history when switching to history mode
+  // 2. Fetch attendance history when selected employee changes
   useEffect(() => {
-    if (viewMode === 'history' && selectedEmp) {
+    if (selectedEmp) {
       const fetchHistory = async () => {
         try {
           const response = await api.get(`/attendance/recent/${selectedEmp.id}`);
           const result = response.data;
-          if (result.code === 1) {
+          if (result && result.code === 1 && Array.isArray(result.data)) {
             setAttendanceList(result.data);
-            if (result.data.length > 0) setSelectedAttendance(result.data[0]);
+            if (viewMode === 'history' && result.data.length > 0) {
+              setSelectedAttendance(result.data[0]);
+            }
+          } else {
+            setAttendanceList([]);
           }
         } catch (err) {
           console.error("History fetch failed", err);
+          setAttendanceList([]);
         }
       };
       fetchHistory();
     }
-  }, [viewMode, selectedEmp]);
+  }, [selectedEmp]);
 
-  // 3. Fetch route for selected attendance
+  useEffect(() => {
+    if (viewMode === 'history' && Array.isArray(attendanceList) && attendanceList.length > 0 && !selectedAttendance) {
+      setSelectedAttendance(attendanceList[0]);
+    }
+  }, [viewMode, attendanceList, selectedAttendance]);
+
+  // 3. Fetch route for selected attendance (and poll if live)
   useEffect(() => {
     const fetchRoute = async () => {
-      const targetId = viewMode === 'live' ? 43 : selectedAttendance?.id;
+      if (!Array.isArray(attendanceList)) return;
+      const activeAttendance = attendanceList.find(a => a && (!a.punchOutTime || a.status === 'ACTIVE'));
+      const targetId = viewMode === 'live' 
+        ? (activeAttendance?.id || (attendanceList.length > 0 ? attendanceList[0].id : 43)) 
+        : selectedAttendance?.id;
+
       if (!selectedEmp || !targetId) return;
 
       try {
         const response = await api.get(`/location/route?employeeId=${selectedEmp.id}&attendanceId=${targetId}`);
         const result = response.data;
 
-        if (result && result.data) {
-          setRawRouteData(result.data);
-          const latlngs = result.data.map((p: any) => [p.latitude, p.longitude] as [number, number]);
+        if (result && result.data && Array.isArray(result.data)) {
+          const validData = result.data.filter((p: any) => 
+            p && 
+            typeof p.latitude === 'number' && 
+            typeof p.longitude === 'number' &&
+            !isNaN(p.latitude) &&
+            !isNaN(p.longitude)
+          );
+          setRawRouteData(validData);
+          const latlngs = validData.map((p: any) => [p.latitude, p.longitude] as [number, number]);
           setRoutePath(latlngs);
+        } else {
+          setRawRouteData([]);
+          setRoutePath([]);
         }
       } catch (error) {
         console.error("Route fetch failed", error);
+        setRawRouteData([]);
+        setRoutePath([]);
       }
     };
 
     fetchRoute();
-  }, [selectedEmp, selectedAttendance, viewMode]);
+
+    if (viewMode === 'live') {
+      const interval = setInterval(fetchRoute, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedEmp, selectedAttendance, viewMode, attendanceList]);
 
   const [isReportView, setIsReportView] = useState(false);
+  const [timeDuration, setTimeDuration] = useState<string>('all');
 
-  const filteredReportData = rawRouteData.filter((_, index) => index % (reportInterval || 1) === 0);
+  const getDurationFilteredData = (data: any[]) => {
+    if (!Array.isArray(data) || data.length === 0) return [];
+    if (timeDuration === 'all') return data;
+    
+    const timestamps = data
+      .map(p => p && p.timestamp ? new Date(p.timestamp).getTime() : null)
+      .filter((t): t is number => t !== null && !isNaN(t));
+      
+    if (timestamps.length === 0) return data;
+    const latestTime = Math.max(...timestamps);
+    
+    let durationMs = 0;
+    if (timeDuration === '10m') durationMs = 10 * 60 * 1000;
+    else if (timeDuration === '30m') durationMs = 30 * 60 * 1000;
+    else if (timeDuration === '1h') durationMs = 60 * 60 * 1000;
+    else if (timeDuration === '2h') durationMs = 2 * 60 * 60 * 1000;
+    
+    if (durationMs === 0) return data;
+    
+    return data.filter(p => {
+      if (!p || !p.timestamp) return false;
+      const t = new Date(p.timestamp).getTime();
+      return !isNaN(t) && (latestTime - t) <= durationMs;
+    });
+  };
+
+  const durationFilteredRouteData = getDurationFilteredData(rawRouteData);
+  const filteredReportData = durationFilteredRouteData.filter((_, index) => index % (reportInterval || 1) === 0);
+  const displayRoutePath = durationFilteredRouteData.map((p: any) => [p.latitude, p.longitude] as [number, number]);
 
   if (isLoading && personnel.length === 0) {
     return (
@@ -286,121 +431,305 @@ export const RouteTracking = () => {
 
   // Render Report View
   if (isReportView) {
+    const handleDownloadPdf = async () => {
+      const reportElement = document.getElementById('report-content-for-pdf');
+      if (!reportElement) {
+        toast.error('Report content not found.');
+        return;
+      }
+
+      setIsExporting(true);
+      const btn = document.getElementById('download-pdf-btn');
+      if (btn) btn.innerText = 'Generating PDF...';
+      const toastId = toast.loading('Generating Route PDF, please wait...');
+
+      // Small delay to ensure UI updates
+      await new Promise(r => setTimeout(r, 500));
+
+      try {
+        const imgData = await toJpeg(reportElement, {
+          quality: 1,
+          pixelRatio: 2,
+          backgroundColor: '#ffffff',
+          width: reportElement.scrollWidth,
+          height: reportElement.scrollHeight,
+        });
+
+        const img = new Image();
+        img.src = imgData;
+        await new Promise((resolve) => { img.onload = resolve; });
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (img.height * pdfWidth) / img.width;
+        
+        let heightLeft = pdfHeight;
+        let position = 0;
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - pdfHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+          heightLeft -= pageHeight;
+        }
+
+        pdf.save(`Route-Report-${selectedEmp?.name || 'Employee'}-${new Date().getTime()}.pdf`);
+        toast.success('PDF Downloaded Successfully!', { id: toastId });
+      } catch (error: any) {
+        console.error('Failed to generate PDF', error);
+        toast.error(`Failed to download PDF: ${error.message || 'Unknown error'}`, { id: toastId });
+      } finally {
+        setIsExporting(false);
+        if (btn) btn.innerText = 'Download PDF';
+      }
+    };
+
     return (
       <motion.div 
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         className="flex flex-col h-screen bg-slate-50 overflow-hidden"
       >
-        {/* Report Header */}
-        <div className="bg-slate-900 px-10 py-8 text-white relative overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
-            <FileText className="w-64 h-64 text-white" />
+        {/* Report Control Bar (Hidden in PDF) */}
+        {!isExporting && (
+          <div className="bg-slate-900 px-10 py-6 text-white relative overflow-hidden shrink-0">
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <Button 
+                  onClick={() => setIsReportView(false)}
+                  variant="ghost" 
+                  className="h-10 w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white p-0 border border-white/10"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight uppercase">Report Designer</h2>
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mt-0.5">Customize and export telemetry data</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Duration</span>
+                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                    {[
+                      { val: 'all', label: 'All' },
+                      { val: '10m', label: '10m' },
+                      { val: '30m', label: '30m' },
+                      { val: '1h', label: '1h' },
+                      { val: '2h', label: '2h' }
+                    ].map((opt) => (
+                      <Button 
+                        key={opt.val}
+                        variant="ghost"
+                        onClick={() => setTimeDuration(opt.val)}
+                        className={cn(
+                          "h-8 px-3 text-[9px] font-black rounded-lg transition-all",
+                          timeDuration === opt.val ? "bg-white text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="h-10 w-[1px] bg-white/10 mx-2" />
+
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Granularity</span>
+                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                    {[1, 5, 10, 30, 60].map((int) => (
+                      <Button 
+                        key={int}
+                        variant="ghost"
+                        onClick={() => setReportInterval(int)}
+                        className={cn(
+                          "h-8 px-4 text-[9px] font-black rounded-lg transition-all",
+                          reportInterval === int ? "bg-white text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {int}m
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="h-10 w-[1px] bg-white/10 mx-2" />
+
+                <Button 
+                  id="download-pdf-btn"
+                  onClick={handleDownloadPdf}
+                  className="h-11 px-8 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Generate Proper PDF
+                </Button>
+              </div>
+            </div>
           </div>
-          
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <Button 
-                onClick={() => setIsReportView(false)}
-                variant="ghost" 
-                className="h-12 w-12 rounded-2xl bg-white/10 hover:bg-white/20 text-white p-0 border border-white/10 shadow-inner"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <div className="h-10 w-[1px] bg-white/20 mx-2" />
-              <div>
-                <h2 className="text-2xl font-black tracking-tight">Route Intelligence Report</h2>
-                <div className="flex items-center gap-3 mt-2">
-                  <Badge className="bg-primary/20 text-white border-white/20 font-black text-[10px] px-3 py-0.5 uppercase">{selectedEmp?.name}</Badge>
-                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-                    Archive: {selectedAttendance ? formatIST(selectedAttendance.punchInTime, 'date') : 'Live Analytics'}
-                  </span>
+        )}
+
+        {/* Report Content */}
+        <div className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar bg-slate-100/30" id="report-content-for-pdf">
+          <div className="max-w-[1000px] mx-auto bg-white shadow-2xl rounded-[2.5rem] border border-slate-200/60 overflow-hidden flex flex-col min-h-[1400px]">
+            
+            {/* Professional Document Header */}
+            <div className="p-12 border-b-4 border-primary/10 flex justify-between items-start bg-gradient-to-br from-slate-50 to-white">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20">
+                    <Navigation className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter italic uppercase">M.R.S. PURVIA</h1>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Telemetry & Route Intelligence</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Location Intelligence Report</h2>
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-slate-900 text-white text-[10px] px-3 py-1 uppercase rounded-lg">Verification ID: #RT-{new Date().getTime().toString().slice(-6)}</Badge>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Confidential Data</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end text-right gap-4">
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Generated On</p>
+                  <p className="text-sm font-black text-slate-900">{formatIST(new Date().toISOString())}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">MRS Poorva Enterprises</p>
+                   <p className="text-[9px] font-medium text-slate-400">Security & Logistics Division</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-3">
-              <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Interval Granularity</span>
-              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5 backdrop-blur-md">
-                {[1, 5, 10, 30, 60].map((int) => (
-                  <Button 
-                    key={int}
-                    variant="ghost"
-                    onClick={() => setReportInterval(int)}
-                    className={cn(
-                      "h-9 px-5 text-[10px] font-black rounded-xl transition-all",
-                      reportInterval === int ? "bg-white text-slate-900 shadow-xl scale-105" : "text-white/40 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    {int}m
-                  </Button>
-                ))}
-              </div>
+            {/* Employee & Context Summary */}
+            <div className="grid grid-cols-3 gap-6 p-12 bg-slate-50/50 border-b border-slate-100">
+               <div className="flex flex-col gap-1">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Personnel Name</span>
+                 <span className="text-base font-black text-slate-900 uppercase">{selectedEmp?.name || 'Unknown'}</span>
+               </div>
+               <div className="flex flex-col gap-1 text-center">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Assignment Date</span>
+                 <span className="text-base font-black text-slate-900">{selectedAttendance ? formatIST(selectedAttendance.punchInTime, 'date') : 'Live Route'}</span>
+               </div>
+               <div className="flex flex-col gap-1 text-end">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Waypoints</span>
+                 <span className="text-base font-black text-emerald-600">{filteredReportData.length} Points Verified</span>
+               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Report Content */}
-        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-          <div className="max-w-[1200px] mx-auto bg-white rounded-[3rem] border border-slate-200/60 shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md border-b border-slate-100">
-                <TableRow className="hover:bg-transparent border-none">
-                  <TableHead className="text-[11px] font-black uppercase text-slate-500 tracking-[0.15em] py-8 px-12">Temporal Marker</TableHead>
-                  <TableHead className="text-[11px] font-black uppercase text-slate-500 tracking-[0.15em] py-8">Geospatial Intelligence (Address)</TableHead>
-                  <TableHead className="text-right text-[11px] font-black uppercase text-slate-500 tracking-[0.15em] py-8 px-12">Operations</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReportData.map((point, idx) => (
-                  <AddressRow 
-                    key={idx} 
-                    point={point} 
-                    formatIST={formatIST} 
-                    getAddress={getAddress} 
-                    setRoutePath={setRoutePath} 
-                    setIsReportOpen={() => {}} // Not needed in full view
-                    setHighlightedPoint={(coords: any) => {
-                      setHighlightedPoint(coords);
-                      setIsReportView(false);
-                    }}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-            
-            {filteredReportData.length === 0 && (
-              <div className="py-40 text-center opacity-30">
-                <Navigation className="w-16 h-16 mx-auto mb-6 animate-pulse text-slate-300" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">No Intelligence Data Recorded</h4>
-                <p className="text-[10px] font-bold mt-2">Telemetry waypoints will appear here once archived</p>
+            {/* Map Preview for Report */}
+            {displayRoutePath.length > 0 && (
+              <div className="px-12 py-8">
+                <div className="bg-white rounded-[2rem] border-2 border-slate-100 shadow-xl overflow-hidden h-[350px] relative">
+                  <MapContainer
+                    center={displayRoutePath[0]}
+                    zoom={13}
+                    className="w-full h-full z-0"
+                    zoomControl={false}
+                  >
+                    <TileLayer
+                      attribution="&copy; Google Maps"
+                      url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                      subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                      crossOrigin="anonymous"
+                    />
+                    <FitRouteBounds path={displayRoutePath} />
+                    <Marker position={displayRoutePath[displayRoutePath.length - 1]} icon={DefaultIcon}>
+                      <Popup><div className="text-[10px] font-black uppercase">Start</div></Popup>
+                    </Marker>
+                    <Marker position={displayRoutePath[0]} icon={DefaultIcon}>
+                      <Popup><div className="text-[10px] font-black uppercase">End</div></Popup>
+                    </Marker>
+                    <Polyline positions={displayRoutePath} color="#B2001A" weight={6} opacity={0.8} />
+                  </MapContainer>
+                  <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-lg border border-slate-200">
+                    <span className="text-[10px] font-black text-slate-800 uppercase flex items-center gap-2">
+                      <Navigation className="w-3.5 h-3.5 text-primary" /> Visualized Route Map
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
+
+            {/* Data Table */}
+            <div className="flex-1 px-12 pb-12">
+              <div className="border border-slate-200 rounded-[2rem] overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-900">
+                    <TableRow className="hover:bg-transparent border-none">
+                      <TableHead className="text-[10px] font-black uppercase text-white/60 tracking-[0.2em] py-6 px-10">Timestamp</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase text-white/60 tracking-[0.2em] py-6">Geospatial Intelligence (Colony/Area)</TableHead>
+                      {!isExporting && <TableHead className="text-right text-[10px] font-black uppercase text-white/60 tracking-[0.2em] py-6 px-10">Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReportData.map((point, idx) => (
+                      <AddressRow 
+                        key={idx} 
+                        point={point} 
+                        formatIST={formatIST} 
+                        getAddress={getAddress} 
+                        setRoutePath={setRoutePath} 
+                        setIsReportOpen={() => {}} 
+                        setHighlightedPoint={(coords: any) => {
+                          setHighlightedPoint(coords);
+                          setIsReportView(false);
+                        }}
+                        isPdfExport={isExporting}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                {filteredReportData.length === 0 && (
+                  <div className="py-40 text-center bg-slate-50/50">
+                    <Activity className="w-16 h-16 mx-auto mb-6 text-slate-200" />
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">No telemetry data recorded for this session</h4>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Professional Footer */}
+            <div className="p-12 bg-slate-900 text-white flex justify-between items-center mt-auto">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-black uppercase tracking-widest">M.R.S. Purvia Intelligence Report</p>
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">Generated by Autonomous Fleet System</p>
+              </div>
+              <div className="flex items-center gap-10">
+                <div className="flex flex-col items-end">
+                   <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Confidentiality</span>
+                   <span className="text-[11px] font-bold text-emerald-400 uppercase">Internally Verified</span>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <p className="text-[9px] font-black text-white/20">© 2024 HELIXION INNOVATIONS</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Report Footer */}
-        <div className="px-12 py-6 bg-white border-t border-slate-200/60 flex items-center justify-between shrink-0">
-          <div className="flex gap-10">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Waypoints</span>
-              <span className="text-sm font-black text-slate-900">{filteredReportData.length} Points Detected</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</span>
-              <span className="text-sm font-black text-emerald-500 uppercase">Verified Archives</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">© Purvia Telemetry Intelligence</p>
+        {/* Back Button (Hidden in PDF) */}
+        {!isExporting && (
+          <div className="px-12 py-6 bg-white border-t border-slate-200/60 flex items-center justify-end shrink-0">
              <Button 
                onClick={() => setIsReportView(false)}
-               className="h-12 rounded-[1.25rem] bg-primary text-white text-[11px] font-black uppercase px-10 shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all"
+               className="h-12 rounded-2xl bg-slate-900 text-white text-[11px] font-black uppercase px-12 shadow-xl shadow-slate-200 hover:bg-primary transition-all active:scale-95"
              >
-               Return to Fleet Map
+               Return to Live Monitoring
              </Button>
           </div>
-        </div>
+        )}
       </motion.div>
     );
   }
@@ -431,6 +760,29 @@ export const RouteTracking = () => {
         </div>
 
         <div className="flex items-center gap-6">
+          {/* Time Duration Dropdown */}
+          <div className="flex items-center gap-3 bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50">
+             <div className="pl-3 flex items-center gap-2">
+               <Clock className="w-4 h-4 text-slate-400" />
+               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden md:inline">Duration</span>
+             </div>
+             <Select 
+               value={timeDuration} 
+               onValueChange={setTimeDuration}
+             >
+               <SelectTrigger className="w-[180px] h-10 border-none bg-white rounded-xl shadow-sm font-bold text-xs focus:ring-2 focus:ring-primary/20">
+                 <SelectValue placeholder="Full Route" />
+               </SelectTrigger>
+               <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
+                 <SelectItem value="all" className="text-xs font-bold py-2 px-4 rounded-xl mb-1">Full Route</SelectItem>
+                 <SelectItem value="10m" className="text-xs font-bold py-2 px-4 rounded-xl mb-1">Last 10 Minutes</SelectItem>
+                 <SelectItem value="30m" className="text-xs font-bold py-2 px-4 rounded-xl mb-1">Last 30 Minutes</SelectItem>
+                 <SelectItem value="1h" className="text-xs font-bold py-2 px-4 rounded-xl mb-1">Last 1 Hour</SelectItem>
+                 <SelectItem value="2h" className="text-xs font-bold py-2 px-4 rounded-xl mb-1">Last 2 Hours</SelectItem>
+               </SelectContent>
+             </Select>
+          </div>
+
           <div className="flex items-center gap-3 bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50">
              <div className="pl-3 flex items-center gap-2">
                <User className="w-4 h-4 text-slate-400" />
@@ -492,7 +844,7 @@ export const RouteTracking = () => {
               </p>
             </div>
           </div>
-          {selectedAttendance && (
+          {selectedEmp && (
             <Button 
               onClick={() => setIsReportView(true)} 
               className="h-8 rounded-xl bg-slate-900 text-white text-[9px] font-black uppercase gap-2 px-4 shadow-md hover:bg-primary transition-all active:scale-95 group"
@@ -567,29 +919,30 @@ export const RouteTracking = () => {
           zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; Google Maps"
+            url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
           />
           {selectedEmp?.coordinates && viewMode === 'live' && <RecenterMap coords={selectedEmp.coordinates} />}
           {highlightedPoint && <RecenterMap coords={highlightedPoint} />}
-          {routePath.length > 0 && <FitRouteBounds path={routePath} />}
+          {displayRoutePath.length > 0 && <FitRouteBounds path={displayRoutePath} />}
 
           {personnel.map(emp => (
-            <Marker key={emp.id} position={emp.coordinates}>
+            <Marker key={emp.id} position={emp.coordinates} icon={DefaultIcon}>
                {/* Marker icon customization could go here */}
             </Marker>
           ))}
 
           {highlightedPoint && (
-            <Marker position={highlightedPoint}>
+            <Marker position={highlightedPoint} icon={DefaultIcon}>
               <Popup>
                 <div className="text-[10px] font-black uppercase tracking-tight">Reported Point</div>
               </Popup>
             </Marker>
           )}
 
-          {routePath.length > 0 && (
-            <Polyline positions={routePath} color="#B2001A" weight={5} opacity={0.7} />
+          {displayRoutePath.length > 0 && (
+            <Polyline positions={displayRoutePath} color="#B2001A" weight={5} opacity={0.7} />
           )}
         </MapContainer>
 

@@ -25,6 +25,7 @@ import { Product } from '../../types';
 import { toast } from 'sonner';
 import { cn } from "@/src/lib/utils";
 import api from '@/src/lib/api';
+import { AddProduct } from './AddProduct';
 
 export const ProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
