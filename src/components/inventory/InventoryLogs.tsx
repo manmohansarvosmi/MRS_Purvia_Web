@@ -6,115 +6,133 @@ import {
   Search, 
   Filter, 
   Download,
-  Package,
   ArrowRight,
   RefreshCw,
-  Box
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const movements = [
-  { id: '1', type: 'IN', item: 'Solar Panel 450W', qty: 50, from: 'Vendor: Tata Solar', to: 'Main Hub', time: '2 mins ago', status: 'Completed' },
-  { id: '2', type: 'OUT', item: 'Hybrid Inverter 5kVA', qty: 2, from: 'Main Hub', to: 'Customer: Sharma Ent.', time: '15 mins ago', status: 'Completed' },
-  { id: '3', type: 'TRANSFER', item: 'Lithium Battery 100Ah', qty: 10, from: 'Main Hub', to: 'Delhi Depot', time: '1 hour ago', status: 'In Transit' },
-  { id: '4', type: 'IN', item: 'DC Wire 4sqmm', qty: 100, from: 'Vendor: Havells', to: 'Secondary', time: '3 hours ago', status: 'Completed' },
+  { id: '1', type: 'IN',       item: 'Solar Panel 450W Mono-Crystalline',  sku: 'SP-450-MO',   qty: 50,  from: 'Vendor: Tata Solar',     to: 'Main Hub',          time: '2 mins ago',   status: 'Completed'  },
+  { id: '2', type: 'OUT',      item: 'Hybrid Inverter 5kVA — Series 9',    sku: 'INV-HYB-5',   qty: 2,   from: 'Main Hub',               to: 'Customer: Sharma',  time: '15 mins ago',  status: 'Completed'  },
+  { id: '3', type: 'TRANSFER', item: 'Lithium Battery 100Ah (Deep Cycle)', sku: 'BATT-LI-100', qty: 10,  from: 'Main Hub',               to: 'Delhi Depot',       time: '1 hour ago',   status: 'In Transit' },
+  { id: '4', type: 'IN',       item: 'DC Wire 4sqmm (100m Roll)',          sku: 'WIRE-DC-4',   qty: 100, from: 'Vendor: Havells',        to: 'Secondary',         time: '3 hours ago',  status: 'Completed'  },
+  { id: '5', type: 'OUT',      item: 'MPPT Controller 60A Pulse',          sku: 'MPPT-60A',    qty: 3,   from: 'Main Hub',               to: 'Customer: Verma',   time: '5 hours ago',  status: 'Completed'  },
 ];
+
+const typeConfig = {
+  IN:       { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: ArrowDownRight },
+  OUT:      { bg: 'bg-rose-50',    text: 'text-rose-600',    border: 'border-rose-100',    icon: ArrowUpRight   },
+  TRANSFER: { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  icon: RefreshCw      },
+};
 
 export const InventoryLogs = () => {
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC] overflow-hidden">
-      
-      <div className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-primary/10">
-                <History className="w-5 h-5 text-primary" />
-             </div>
-             Inventory Logs
-          </h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-[52px]">Real-time Stock Movement & Audit Trails</p>
+    <div className="flex-1 flex flex-col bg-slate-100/40 overflow-hidden">
+
+      {/* Header */}
+      <div className="px-6 py-5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10">
+            <History className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 uppercase tracking-tight">Movement Logs</h2>
+            <p className="text-[10px] font-normal text-slate-400 mt-0.5 uppercase tracking-widest">Real-time audit trail and stock tracing</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
-             <RefreshCw className="w-4 h-4" /> Refresh
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-medium uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">
+            <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
-             <Download className="w-4 h-4" /> Export CSV
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-[10px] font-medium uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
+            <Download className="w-4 h-4" /> Export Audit
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex items-center gap-4">
-               <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
-                  <input 
-                    type="text" 
-                    placeholder="Filter by SKU, Batch, or Location..." 
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-semibold outline-none focus:border-primary/20 transition-all"
-                  />
-               </div>
-               <button className="p-3.5 bg-slate-50 rounded-2xl text-slate-400 border border-slate-100">
-                  <Filter className="w-5 h-5" />
-               </button>
+      {/* Content with Margin */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        
+        {/* Card Component */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
+          
+          {/* Internal Toolbar */}
+          <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
+              <input 
+                type="text" 
+                placeholder="Search logs by product, SKU, or user..." 
+                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-normal outline-none focus:border-primary/20 transition-all"
+              />
             </div>
+            <button className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[10px] font-medium uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all">
+              <Filter className="w-4 h-4" /> Date Range
+            </button>
+          </div>
 
-            <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse min-w-[1000px]">
-                  <thead>
-                     <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[200px]">Time & Status</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Item & Transaction</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[150px]">Quantity</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Route Flow</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                     {movements.map((m) => (
-                        <tr key={m.id} className="group hover:bg-slate-50/50 transition-colors">
-                           <td className="px-8 py-6">
-                              <div className="space-y-1">
-                                 <p className="text-xs font-black text-slate-900">{m.time}</p>
-                                 <span className={cn(
-                                    "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                                    m.status === 'Completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
-                                 )}>{m.status}</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-4">
-                                 <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                    m.type === 'IN' ? "bg-emerald-50 text-emerald-600" : m.type === 'OUT' ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-600"
-                                 )}>
-                                    {m.type === 'IN' ? <ArrowDownRight className="w-5 h-5" /> : m.type === 'OUT' ? <ArrowUpRight className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
-                                 </div>
-                                 <div>
-                                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{m.item}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type: {m.type}</p>
-                                 </div>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-2">
-                                 <Box className="w-3.5 h-3.5 text-slate-400" />
-                                 <span className="text-sm font-black text-slate-900">{m.qty} Units</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-4 text-xs font-bold text-slate-600">
-                                 <span className="truncate max-w-[150px]">{m.from}</span>
-                                 <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
-                                 <span className="truncate max-w-[150px]">{m.to}</span>
-                              </div>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
-         </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  {['Time & Info', 'Transaction Type', 'Product Details', 'Movement Log', 'Result'].map((h) => (
+                    <th key={h} className="px-8 py-5 text-[10px] font-medium uppercase tracking-widest text-slate-400">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 bg-white">
+                {movements.map((m) => {
+                  const cfg = typeConfig[m.type as keyof typeof typeConfig];
+                  const Icon = cfg.icon;
+                  return (
+                    <tr key={m.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white border border-transparent group-hover:border-slate-200 transition-all">
+                              <Clock className="w-4 h-4" />
+                           </div>
+                           <span className="text-xs font-medium text-slate-900 tracking-tight">{m.time}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className={cn('inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-semibold uppercase tracking-widest', cfg.bg, cfg.text, cfg.border)}>
+                          <Icon className="w-3.5 h-3.5" />
+                          {m.type}
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors">{m.item}</p>
+                        <p className="text-[10px] font-normal text-slate-400 mt-2 uppercase tracking-widest">SKU: {m.sku}</p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4 text-xs font-normal text-slate-600">
+                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">{m.from}</span>
+                          <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
+                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">{m.to}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="space-y-1">
+                           <p className="text-sm font-semibold text-slate-900">{m.qty > 0 ? `+${m.qty}` : m.qty} Units</p>
+                           <span className={cn(
+                             'text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md',
+                             m.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                           )}>{m.status}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+            {movements.length} audit logs displayed for current session
+          </div>
+        </div>
       </div>
     </div>
   );

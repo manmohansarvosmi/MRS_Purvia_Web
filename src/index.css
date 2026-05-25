@@ -56,7 +56,7 @@
     --card-foreground: #111827;
     --popover: #FFFFFF;
     --popover-foreground: #111827;
-    --primary: #CB0C1F; /* Rich Zomato-like Red */
+    --primary: #CB0C1F; /* Original Branding Red */
     --primary-foreground: #FFFFFF;
     --secondary: #F3F4F6;
     --secondary-foreground: #1F2937;
@@ -69,7 +69,7 @@
     --border: #E5E7EB;
     --input: #E5E7EB;
     --ring: #CB0C1F;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     
     --glass-bg: rgba(255, 255, 255, 0.9);
     --glass-border: rgba(0, 0, 0, 0.05);
@@ -112,7 +112,7 @@
 /* Zomato/Amazon Style Premium Components */
 
 .premium-card {
-  @apply bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300;
+  @apply bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300;
   border-radius: var(--radius);
 }
 
@@ -137,11 +137,11 @@
 }
 
 .data-table-compact th {
-  @apply bg-slate-50/30 px-6 py-3.5 font-bold text-slate-400 uppercase tracking-wider text-[9px] border-b border-slate-100;
+  @apply bg-slate-50/30 px-3 py-2 font-bold text-slate-400 uppercase tracking-wider text-[8px] border-b border-slate-100;
 }
 
 .data-table-compact td {
-  @apply px-6 py-3.5 border-b border-slate-50 align-middle text-slate-600 text-xs;
+  @apply px-3 py-2 border-b border-slate-50 align-middle text-slate-600 text-[11px];
 }
 
 .data-table-compact tr:hover td {
@@ -178,3 +178,6 @@
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full hover:bg-gray-300; }
+.active-type-glow {
+  box-shadow: 0 4px 12px rgba(203, 12, 31, 0.15);
+}

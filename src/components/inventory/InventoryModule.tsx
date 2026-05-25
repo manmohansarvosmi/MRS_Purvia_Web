@@ -47,15 +47,15 @@ export const InventoryModule = ({ initialSubTab = 'items' }: { initialSubTab?: s
   ];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-100/40">
       {/* Module Header Bar */}
-      <div className="px-8 bg-white border-b border-slate-100 flex items-center gap-10 overflow-x-auto no-scrollbar shrink-0">
+      <div className="px-8 bg-white border-b border-slate-200 flex items-center gap-6 overflow-x-auto no-scrollbar shrink-0">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setSubTab(tab.id)}
             className={cn(
-              "flex items-center gap-2.5 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] py-5 transition-all relative group",
+              "flex items-center gap-2 whitespace-nowrap text-[10px] font-medium uppercase tracking-widest py-3 target-tab transition-all relative group",
               subTab === tab.id ? "text-primary" : "text-slate-400 hover:text-slate-600"
             )}
           >

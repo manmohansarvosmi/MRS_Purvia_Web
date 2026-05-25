@@ -12,6 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EstimateForm } from './EstimateForm';
 
 const quotations = [
   { id: 'QUO-2026-001', client: 'Kumar Electronics', items: 12, value: '₹1,45,000', expiry: '24 May', status: 'Pending' },
@@ -19,7 +20,17 @@ const quotations = [
   { id: 'QUO-2026-003', client: 'Singh & Sons', items: 8, value: '₹89,000', expiry: 'Today', status: 'Expired' },
 ];
 
-export const QuotationModule = () => {
+interface QuotationModuleProps {
+  onConvertToInvoice?: (estimate: any) => void;
+}
+
+export const QuotationModule = ({ onConvertToInvoice }: QuotationModuleProps) => {
+  const [isCreating, setIsCreating] = useState(false);
+
+  if (isCreating) {
+    return <EstimateForm onCancel={() => setIsCreating(false)} />;
+  }
+
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] overflow-hidden">
       
@@ -34,7 +45,10 @@ export const QuotationModule = () => {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-[52px]">Manage pending proposals & client estimates</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+          <button 
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+          >
              <Plus className="w-4 h-4" /> Create Estimate
           </button>
         </div>
@@ -80,7 +94,27 @@ export const QuotationModule = () => {
                                  q.status === 'Pending' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"
                               )}>{q.status}</span>
                            </td>
-                           <td className="px-8 py-6"><button className="text-slate-300"><MoreVertical className="w-5 h-5" /></button></td>
+                           <td className="px-8 py-6">
+                              <div className="flex items-center gap-2">
+                                {q.status === 'Pending' && onConvertToInvoice && (
+                                  <button 
+                                    onClick={() => onConvertToInvoice({
+                                      estimateId: q.id,
+                                      clientName: q.client,
+                                      clientAddress: 'Site Address, UP',
+                                      clientGstin: '',
+                                      items: [
+                                        { id: '1', name: 'Sample Item from ' + q.id, qty: 1, rate: 45000, taxRate: 18, hsn: '8541', costPrice: 38000, margin: 7000, marginType: 'amount' }
+                                      ]
+                                    })}
+                                    className="px-3 py-1 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center gap-1"
+                                  >
+                                    <ArrowRight className="w-2.5 h-2.5" /> Convert
+                                  </button>
+                                )}
+                                <button className="text-slate-300"><MoreVertical className="w-5 h-5" /></button>
+                              </div>
+                           </td>
                         </tr>
                      ))}
                   </tbody>

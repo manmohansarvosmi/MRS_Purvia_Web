@@ -1,37 +1,50 @@
 import React from 'react';
-import { GSTInvoiceForm } from './GSTInvoiceForm';
+import { GSTInvoiceForm, EstimateSource } from './GSTInvoiceForm';
 import { CRMModule } from '../crm/CRMModule';
 import { QuotationModule } from './QuotationModule';
 import { SalesHistory } from './SalesHistory';
 import { POSModule } from './POSModule';
 import { cn } from '@/lib/utils';
-import { 
-  FileText, 
-  Users, 
-  History, 
-  CreditCard,
+import {
+  FileText,
+  Users,
+  History,
   Zap,
-  Receipt
+  Receipt,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string }) => {
   const [subTab, setSubTab] = React.useState(initialSubTab);
+  // When an estimate is converted → store its data, open billing tab
+  const [pendingEstimate, setPendingEstimate] = React.useState<EstimateSource | null>(null);
 
   React.useEffect(() => {
     setSubTab(initialSubTab);
   }, [initialSubTab]);
+
+  // Called from QuotationModule "Convert to Invoice" button
+  const handleConvertToInvoice = (estimate: EstimateSource) => {
+    setPendingEstimate(estimate);
+    setSubTab('billing');
+  };
+
+  // Clear pending estimate when user manually switches away from billing
+  const handleTabChange = (tab: string) => {
+    if (tab !== 'billing') setPendingEstimate(null);
+    setSubTab(tab);
+  };
 
   const renderContent = () => {
     switch (subTab) {
       case 'pos':
         return <POSModule />;
       case 'billing':
-        return <GSTInvoiceForm />;
+        return <GSTInvoiceForm fromEstimate={pendingEstimate ?? undefined} />;
       case 'customers':
         return <CRMModule />;
       case 'quotations':
-        return <QuotationModule />;
+        return <QuotationModule onConvertToInvoice={handleConvertToInvoice} />;
       case 'sales-logs':
         return <SalesHistory />;
       default:
@@ -40,11 +53,11 @@ export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string 
   };
 
   const tabs = [
-    { id: 'pos', label: 'Retail POS', icon: Zap },
-    { id: 'billing', label: 'Tax Invoicing', icon: FileText },
-    { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'quotations', label: 'Estimates', icon: Receipt },
-    { id: 'sales-logs', label: 'Sales Logs', icon: History },
+    { id: 'pos',        label: 'Retail POS',   icon: Zap      },
+    { id: 'billing',    label: 'Tax Invoicing', icon: FileText },
+    { id: 'customers',  label: 'Customers',    icon: Users    },
+    { id: 'quotations', label: 'Estimates',    icon: Receipt  },
+    { id: 'sales-logs', label: 'Sales Logs',   icon: History  },
   ];
 
   return (
@@ -53,27 +66,33 @@ export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string 
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setSubTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={cn(
               "flex items-center gap-2.5 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] py-5 transition-all relative group",
               subTab === tab.id ? "text-primary" : "text-slate-400 hover:text-slate-600"
             )}
           >
             <tab.icon className={cn(
-              "w-4 h-4 transition-colors", 
+              "w-4 h-4 transition-colors",
               subTab === tab.id ? "text-primary" : "text-slate-300 group-hover:text-slate-500"
             )} />
             {tab.label}
+            {/* badge when billing has prefilled estimate */}
+            {tab.id === 'billing' && pendingEstimate && (
+              <span className="ml-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 uppercase tracking-widest">
+                FROM EST
+              </span>
+            )}
             {subTab === tab.id && (
-              <motion.div 
-                layoutId="active-sales-subtab" 
-                className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_8px_rgba(178,0,26,0.3)]" 
+              <motion.div
+                layoutId="active-sales-subtab"
+                className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_8px_rgba(178,0,26,0.3)]"
               />
             )}
           </button>
         ))}
       </div>
-      
+
       <div className="flex-1 overflow-hidden flex flex-col">
         {renderContent()}
       </div>

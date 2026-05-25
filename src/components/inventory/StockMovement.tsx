@@ -29,25 +29,25 @@ const MOCK_MOVEMENTS = [
 
 export const StockMovement = () => {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-100/40">
       {/* Header & Controls */}
-      <div className="p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 bg-white">
+      <div className="p-6 lg:p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 bg-white">
         <div>
-          <h2 className="text-xl font-bold uppercase tracking-tight text-slate-900 flex items-center gap-3">
+          <h2 className="text-xl font-normal uppercase tracking-tight text-slate-900 flex items-center gap-3">
             <Activity className="w-5 h-5 text-primary" />
             Asset Movement Log
           </h2>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-1">Real-time Stock Displacement Archives</p>
+          <p className="text-[10px] font-normal text-slate-400 uppercase tracking-widest mt-1">Real-time Stock Displacement Archives</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
             <Input 
               placeholder="Search movement ID, asset or person..." 
-              className="pl-9 h-10 w-64 bg-slate-50 border-none text-xs font-bold rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
+              className="pl-9 h-10 w-64 bg-slate-50 border-none text-xs font-normal rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
-          <Button variant="outline" className="h-10 rounded-lg border-slate-200 text-[10px] font-bold uppercase tracking-widest px-4 hover:bg-slate-50">
+          <Button variant="outline" className="h-10 rounded-lg border-slate-200 text-[10px] font-normal uppercase tracking-widest px-4 hover:bg-slate-50">
             <Filter className="w-3.5 h-3.5 mr-2" />
             Filter Data
           </Button>
@@ -55,7 +55,7 @@ export const StockMovement = () => {
       </div>
 
       {/* Movement Timeline */}
-      <div className="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 lg:p-6 custom-scrollbar">
         <div className="max-w-5xl mx-auto">
           <div className="relative">
             {/* Vertical Line */}
@@ -83,7 +83,7 @@ export const StockMovement = () => {
                   </div>
 
                   {/* Card Content */}
-                  <Card className="border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden bg-white group">
+                  <Card className="border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden bg-white group">
                     <CardContent className="p-0">
                       <div className="flex flex-col md:flex-row">
                         {/* Status Strip */}
@@ -94,27 +94,27 @@ export const StockMovement = () => {
                         
                         <div className="flex-1 p-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all">
                               <Box className="w-5 h-5" />
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight">{mov.product}</h4>
+                                <h4 className="text-sm font-normal text-slate-900 uppercase tracking-tight">{mov.product}</h4>
                                 <Badge variant="outline" className={cn(
-                                  "text-[8px] font-bold uppercase tracking-tighter rounded-md",
+                                  "text-[8px] font-normal uppercase tracking-tighter rounded-md",
                                   mov.type === 'in' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-primary border-red-100"
                                 )}>
                                   {mov.type === 'in' ? 'INFLOW' : 'OUTFLOW'}
                                 </Badge>
                               </div>
                               <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1 uppercase tracking-widest">
                                   <Clock className="w-3 h-3" /> {mov.time}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1 uppercase tracking-widest">
                                   <User className="w-3 h-3" /> {mov.person}
                                 </span>
-                                <span className="text-[10px] font-mono font-bold text-slate-400 px-2 py-0.5 bg-slate-50 rounded border border-slate-100">
+                                <span className="text-[10px] font-mono font-normal text-slate-400 px-2 py-0.5 bg-slate-50 rounded border border-slate-200">
                                   {mov.id}
                                 </span>
                               </div>
@@ -124,12 +124,12 @@ export const StockMovement = () => {
                           <div className="flex flex-col md:items-end gap-1">
                             <div className="flex items-baseline gap-2">
                               <span className={cn(
-                                "text-xl font-bold tracking-tight",
+                                "text-xl font-normal tracking-tight",
                                 mov.type === 'in' ? "text-emerald-600" : "text-primary"
                               )}>
                                 {mov.type === 'in' ? '+' : '-'}{mov.qty}
                               </span>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase">Units</span>
+                              <span className="text-[9px] font-normal text-slate-400 uppercase">Units</span>
                             </div>
                             <p className="text-[10px] font-medium text-slate-400 max-w-[200px] md:text-right leading-tight">
                               {mov.reason}

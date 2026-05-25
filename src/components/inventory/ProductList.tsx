@@ -82,7 +82,7 @@ export const ProductList = () => {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8 custom-scrollbar">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
         <div className="relative flex-1 max-w-md group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -95,14 +95,14 @@ export const ProductList = () => {
         </div>
         <Button 
           onClick={() => setIsAdding(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest italic h-12 px-6 rounded-xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
+          className="bg-slate-900 hover:bg-slate-800 text-white font-medium uppercase tracking-widest italic h-12 px-6 rounded-xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
         >
           <Plus className="w-4 h-4 mr-2" />
           Ingest Asset
         </Button>
       </div>
 
-      <Card className="rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/50 bg-white overflow-hidden relative">
+      <Card className="rounded-3xl border border-slate-200 shadow-2xl shadow-slate-200/50 bg-white overflow-hidden relative">
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
             <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
@@ -112,12 +112,12 @@ export const ProductList = () => {
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow className="hover:bg-transparent border-b border-slate-200">
-                <TableHead className="h-12 px-6 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Product Name</TableHead>
-                <TableHead className="h-12 px-6 text-[10px] font-bold uppercase text-slate-500 tracking-wider">SKU Code</TableHead>
-                <TableHead className="h-12 px-6 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Stock Status</TableHead>
-                <TableHead className="h-12 px-6 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Price</TableHead>
-                <TableHead className="h-12 px-6 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Warranty</TableHead>
-                <TableHead className="h-12 px-6 text-right text-[10px] font-bold uppercase text-slate-500 tracking-wider">Actions</TableHead>
+                <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-500 tracking-wider">Product Name</TableHead>
+                <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-500 tracking-wider">SKU Code</TableHead>
+                <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-500 tracking-wider">Stock Status</TableHead>
+                <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-500 tracking-wider">Price</TableHead>
+                <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-500 tracking-wider">Warranty</TableHead>
+                <TableHead className="h-12 px-6 text-right text-[10px] font-normal uppercase text-slate-500 tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,17 +129,17 @@ export const ProductList = () => {
                           <Package className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900 text-sm leading-none mb-1">{p.name}</p>
-                        <p className="text-[9px] font-medium text-slate-400 uppercase italic tracking-tighter">{p.category}</p>
+                        <p className="font-normal text-slate-900 text-sm leading-none mb-1">{p.name}</p>
+                        <p className="text-[9px] font-semibold text-slate-400 uppercase italic tracking-tighter">{p.category}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-6 py-4">
-                    <code className="text-[10px] font-semibold text-slate-500 font-mono italic bg-slate-50 px-2 py-1 rounded-md border border-slate-100">[{p.sku}]</code>
+                    <code className="text-[10px] font-normal text-slate-500 font-mono italic bg-slate-50 px-2 py-1 rounded-md border border-slate-200">[{p.sku}]</code>
                   </TableCell>
                   <TableCell className="px-6 py-4">
                     <div className="flex flex-col gap-1.5 min-w-[120px]">
-                      <div className="flex justify-between text-[8px] font-semibold uppercase italic">
+                      <div className="flex justify-between text-[8px] font-normal uppercase italic">
                         <span className="text-slate-900">{p.quantity} Units</span>
                         <span className={p.quantity <= p.minStockLevel ? "text-primary animate-pulse" : "text-slate-400"}>CRITICAL AT: {p.minStockLevel}</span>
                       </div>
@@ -155,17 +155,17 @@ export const ProductList = () => {
                     </div>
                   </TableCell>
                   <TableCell className="px-6 py-4">
-                    <p className="text-sm font-semibold text-slate-900">₹{p.salePrice.toLocaleString()}</p>
+                    <p className="text-sm font-normal text-slate-900">₹{p.salePrice.toLocaleString()}</p>
                   </TableCell>
                   <TableCell className="px-6 py-4">
-                    <Badge variant="outline" className="rounded-md px-2 py-0.5 text-[8px] font-semibold border-slate-200 bg-white">
+                    <Badge variant="outline" className="rounded-md px-2 py-0.5 text-[8px] font-normal border-slate-200 bg-white">
                       {p.warrantyMonths} Months
                     </Badge>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg bg-white border border-slate-100 hover:text-primary shadow-sm"><History className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg bg-white border border-slate-100 hover:text-emerald-500 shadow-sm"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-primary shadow-sm"><History className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-emerald-500 shadow-sm"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

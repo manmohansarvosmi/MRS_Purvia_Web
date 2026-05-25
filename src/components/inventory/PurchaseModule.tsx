@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   ShoppingCart, 
   Plus, 
@@ -6,99 +6,152 @@ import {
   Filter, 
   Download, 
   MoreVertical,
-  ArrowRight,
+  Building2,
+  ChevronRight,
   PackageCheck,
   Clock,
-  Building2,
-  Calendar
+  AlertCircle,
+  IndianRupee
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PurchaseOrderForm } from './PurchaseOrderForm';
 
 const purchaseOrders = [
-  { id: 'PO-2026-0042', vendor: 'Tata Solar Systems', items: 15, value: '₹14.2L', date: 'Today', status: 'Sent' },
-  { id: 'PO-2026-0041', vendor: 'Havells India', items: 120, value: '₹2.4L', date: 'Yesterday', status: 'Received' },
-  { id: 'PO-2026-0040', vendor: 'Microtek Power', items: 8, value: '₹8.9L', date: '12 May', status: 'Partial' },
+  { id: 'PO-2026-0042', vendor: 'Tata Solar Systems',  items: 15,  value: '₹14.2L', date: 'Today',     eta: '28 May',     status: 'Sent'     },
+  { id: 'PO-2026-0041', vendor: 'Havells India',        items: 120, value: '₹2.4L',  date: 'Yesterday', eta: 'Delivered',  status: 'Received' },
+  { id: 'PO-2026-0030', vendor: 'Microtek Power',       items: 8,   value: '₹8.9L',  date: '12 May',    eta: '30 May',     status: 'Partial'  },
+  { id: 'PO-2026-0029', vendor: 'Luminous Tech',        items: 40,  value: '₹6.1L',  date: '10 May',    eta: '26 May',     status: 'Sent'     },
+  { id: 'PO-2026-0028', vendor: 'Waaree Energies',      items: 22,  value: '₹19.8L', date: '9 May',     eta: 'Delivered',  status: 'Received' },
 ];
 
+const statusConfig = {
+  'Received': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', dot: 'bg-emerald-500' },
+  'Partial':  { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',   dot: 'bg-amber-500'   },
+  'Sent':     { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  dot: 'bg-indigo-400'  },
+};
+
 export const PurchaseModule = () => {
+  const [view, setView] = useState<'list' | 'create'>('list');
+
+  if (view === 'create') {
+    return <PurchaseOrderForm onBack={() => setView('list')} />;
+  }
+
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC] overflow-hidden">
-      
-      <div className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-primary/10">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-             </div>
-             Purchase Orders (PO)
-          </h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-[52px]">Procurement Management & Vendor Fulfillment</p>
-        </div>
+    <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden animate-in fade-in duration-500">
+
+      {/* Header - More Compact */}
+      <div className="px-6 py-3 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
-             <Building2 className="w-4 h-4" /> Vendors
+          <div className="w-9 h-9 bg-primary/5 rounded-xl flex items-center justify-center text-primary border border-primary/10">
+            <ShoppingCart className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-tight">Purchase Orders</h2>
+            <p className="text-[9px] font-normal text-slate-400 uppercase tracking-widest leading-none mt-1">Vendor Procurement Ledger</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-[9px] font-semibold uppercase tracking-widest rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2">
+            <Building2 className="w-3.5 h-3.5" /> Vendors
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-             <Plus className="w-4 h-4" /> New Purchase Order
+          <button onClick={() => setView('create')} className="px-4 py-2 bg-primary text-white text-[9px] font-semibold uppercase tracking-widest rounded-lg hover:bg-primary/90 transition-all flex items-center gap-2 shadow-md shadow-primary/10">
+            <Plus className="w-3.5 h-3.5" /> New Order
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex items-center gap-4">
-               <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
-                  <input type="text" placeholder="Search by PO Number or Vendor..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-semibold outline-none focus:border-primary/20" />
-               </div>
-               <button className="p-3.5 bg-slate-50 rounded-2xl text-slate-400 border border-slate-100"><Filter className="w-5 h-5" /></button>
-            </div>
+      {/* Content with Smaller Margins */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+        
+        {/* Compact Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           {[
+             { label: 'Active POs', value: '7', icon: ShoppingCart, color: 'text-primary' },
+             { label: 'Open Value', value: '₹43.2L', icon: IndianRupee, color: 'text-amber-600' },
+             { label: 'Received (MTD)', value: '18 Units', icon: PackageCheck, color: 'text-emerald-600' },
+           ].map((s, i) => (
+             <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-primary/20 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                   <s.icon className={cn("w-5 h-5", s.color)} />
+                </div>
+                <div>
+                   <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                   <p className="text-base font-bold text-slate-800 mt-0.5">{s.value}</p>
+                </div>
+             </div>
+           ))}
+        </div>
 
-            <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse min-w-[1000px]">
-                  <thead>
-                     <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[180px]">PO Number</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Vendor Detail</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[150px]">Items</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[180px]">Order Value</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[150px]">Order Date</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-[150px]">Status</th>
-                        <th className="px-8 py-5 w-12"></th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                     {purchaseOrders.map((po) => (
-                        <tr key={po.id} className="group hover:bg-slate-50/50 transition-colors">
-                           <td className="px-8 py-6 font-black text-slate-900 text-sm italic">{po.id}</td>
-                           <td className="px-8 py-6">
-                              <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{po.vendor}</p>
-                           </td>
-                           <td className="px-8 py-6 text-sm font-bold text-slate-600">{po.items} Units</td>
-                           <td className="px-8 py-6 text-sm font-black text-slate-900 italic">{po.value}</td>
-                           <td className="px-8 py-6 text-xs font-bold text-slate-500">{po.date}</td>
-                           <td className="px-8 py-6">
-                              <span className={cn(
-                                 "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex items-center gap-2 w-fit",
-                                 po.status === 'Received' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                                 po.status === 'Partial' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-indigo-50 text-indigo-600 border-indigo-100"
-                              )}>
-                                 <div className={cn("w-1 h-1 rounded-full", po.status === 'Received' ? "bg-emerald-500" : "bg-amber-500")} />
-                                 {po.status}
-                              </span>
-                           </td>
-                           <td className="px-8 py-6 flex items-center gap-2">
-                              <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><Download className="w-4 h-4" /></button>
-                              <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-300"><MoreVertical className="w-5 h-5" /></button>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
+        {/* PO List Card - Less Rounding */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4 bg-slate-50/30">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+              <input 
+                type="text" 
+                placeholder="Find orders..." 
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-normal outline-none focus:border-primary/20 transition-all h-9"
+              />
             </div>
-         </div>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-500 text-[9px] font-semibold uppercase tracking-widest rounded-lg hover:bg-slate-50 transition-all h-9">
+              <Filter className="w-3.5 h-3.5" /> Filter
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[800px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  {['PO Number', 'Vendor Details', 'Summary', 'ETA', 'Status', ''].map(h => (
+                    <th key={h} className="px-6 py-3 text-[9px] font-semibold uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {purchaseOrders.map((po) => {
+                  const cfg = statusConfig[po.status as keyof typeof statusConfig];
+                  return (
+                    <tr key={po.id} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-bold text-slate-800 font-mono italic">{po.id}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                           <Building2 className="w-3.5 h-3.5 text-slate-300" />
+                           <span className="text-sm font-medium text-slate-700 group-hover:text-primary transition-colors">{po.vendor}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-slate-800">{po.value}</p>
+                        <p className="text-[9px] font-normal text-slate-400 uppercase mt-0.5">{po.items} Units</p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs font-normal text-slate-500">
+                           <Clock className="w-3.5 h-3.5 opacity-40" />
+                           <span>{po.eta}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-widest', cfg.bg, cfg.text, cfg.border)}>
+                          <span className={cn('w-1 h-1 rounded-full', cfg.dot)} />
+                          {po.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-300 transition-colors">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-
     </div>
   );
 };

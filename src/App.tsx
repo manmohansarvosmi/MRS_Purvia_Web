@@ -14,15 +14,17 @@ import { RouteTracking } from '@/src/components/routes/RouteTracking';
 import { LoginPage } from '@/src/components/auth/LoginPage';
 import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
 import { NotificationCenter } from '@/src/components/notifications/NotificationCenter';
-import { CRMModule } from '@/src/components/crm/CRMModule';
 import { ManufacturingModule } from '@/src/components/manufacturing/ManufacturingModule';
-import { ProjectModule } from '@/src/components/projects/ProjectModule';
 import { AssetModule } from '@/src/components/assets/AssetModule';
 import { AuditModule } from '@/src/components/audit/AuditModule';
 import { SupportModule } from '@/src/components/support/SupportModule';
 import { TaskModule } from '@/src/components/tasks/TaskModule';
 import { SalesModule } from '@/src/components/sales/SalesModule';
 import { LedgerEngine } from '@/src/components/accounting/LedgerEngine';
+import { PayrollModule } from '@/src/components/accounting/modules/PayrollModule';
+import { ReportsModule } from '@/src/components/accounting/modules/ReportsModule';
+import { NotificationsModule } from '@/src/components/accounting/modules/NotificationsModule';
+import { SettingsModule } from '@/src/components/accounting/modules/SettingsModule';
 import { GSTModule } from '@/src/components/accounting/GSTModule';
 import { 
   Sparkles,
@@ -44,7 +46,9 @@ import {
   Map as MapIcon,
   ShieldCheck,
   CreditCard,
-  Bell
+  Bell,
+  ArrowDownCircle,
+  ArrowUpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -146,51 +150,38 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Overview />;
-      case 'analytics':
-        return <AnalyticsDashboard />;
-      case 'ai-assistant':
-        return <AIAssistant />;
-      case 'sales':
-        return <SalesModule initialSubTab="pos" />;
-      case 'quotations':
-        return <SalesModule initialSubTab="quotations" />;
+      case 'accounts':
+      case 'ledger':
+      case 'cashbook':
+      case 'daybook':
+      case 'vouchers':
+        return <LedgerEngine initialTab={activeTab} />;
+      case 'expenses':
+        return <LedgerEngine initialTab="expenses" />;
+      case 'income':
+        return <LedgerEngine initialTab="income" />;
+      case 'billing':
+        return <SalesModule initialSubTab="invoices" />;
+      case 'reports':
+        return <ReportsModule />;
+      case 'payroll':
+        return <PayrollModule />;
+      case 'notifications':
+        return <NotificationsModule />;
       case 'inventory':
-        return <InventoryModule initialSubTab="items" />;
-      case 'purchases':
-        return <InventoryModule initialSubTab="purchases" />;
-      case 'warehouse':
-        return <InventoryModule initialSubTab="warehouses" />;
-      case 'accounting':
-      case 'finance':
-        return <LedgerEngine />;
-      case 'gst':
-        return <GSTModule />;
-      case 'crm':
-        return <CRMModule />;
+        return <InventoryModule />;
+      case 'sales':
+        return <SalesModule />;
       case 'manufacturing':
         return <ManufacturingModule />;
       case 'employees':
         return <EmployeeModule />;
       case 'routes':
         return <RouteTracking />;
-      case 'notifications':
-        return <NotificationCenter />;
-      case 'projects':
-        return <ProjectModule />;
-      case 'tasks':
-        return <TaskModule />;
-      case 'assets':
-        return <AssetModule />;
-      case 'reports':
-        return <AnalyticsDashboard />;
-      case 'audit':
-        return <AuditModule />;
+      case 'attendance':
+        return <EmployeeModule initialSubTab="attendance" />;
       case 'settings':
-        return <ModulePlaceholder name="System Settings" icon={Settings} />;
-      case 'subscription':
-        return <ModulePlaceholder name="Subscription" icon={Wallet} />;
-      case 'support':
-        return <SupportModule />;
+        return <SettingsModule />;
       default:
         return <Overview />;
     }
