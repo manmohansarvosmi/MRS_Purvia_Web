@@ -39,7 +39,7 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
 
 // ── Mock Data ─────────────────────────────────────────────────────────

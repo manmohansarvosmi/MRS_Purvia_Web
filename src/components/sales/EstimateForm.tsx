@@ -15,7 +15,9 @@ import {
   Send,
   X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
+import { inventoryApi, salesApi } from '@/src/lib/api';
+import { toast } from 'sonner';
 
 interface EstimateItem {
   id: string;
@@ -34,14 +36,6 @@ interface EstimateItem {
   total: number;
 }
 
-const mockProducts = [
-  { id: '1', name: 'Solar Panel 450W Mono', cost: 10500, gst: 12, supplier: 'Tata Solar Systems', unit: 'PCS' },
-  { id: '2', name: 'Hybrid Inverter 5kVA',  cost: 38200, gst: 18, supplier: 'Havells India',       unit: 'PCS' },
-  { id: '3', name: 'Lithium Battery 100Ah', cost: 28000, gst: 18, supplier: 'Microtek Power',      unit: 'PCS' },
-  { id: '4', name: 'DC Wire 4sqmm (100m)',  cost: 3500,  gst: 12, supplier: 'Polycab',             unit: 'MTR' },
-  { id: '5', name: 'MPPT Controller 60A',   cost: 7800,  gst: 18, supplier: 'Luminous Tech',       unit: 'PCS' },
-  { id: '6', name: 'Mounting Structure L2', cost: 2100,  gst: 18, supplier: 'Solar Labs',          unit: 'SET' },
-];
 
 interface EstimateFormProps {
   onCancel: () => void;
@@ -60,7 +54,16 @@ export const EstimateForm = ({ onCancel }: EstimateFormProps) => {
   const [searchQ, setSearchQ]       = useState('');
   const [showDrop, setShowDrop]     = useState(false);
   const [isSaved, setIsSaved]       = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [products, setProducts]     = useState<any[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real products from backend
+  useEffect(() => {
+    inventoryApi.getAllProducts()
+      .then(res => { if (res.status === 1) setProducts(res.data); })
+      .catch(err => console.error('Product fetch failed:', err));
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -74,12 +77,14 @@ export const EstimateForm = ({ onCancel }: EstimateFormProps) => {
   }, []);
 
   const filteredProducts = searchQ.length > 0
-    ? mockProducts.filter(p => p.name.toLowerCase().includes(searchQ.toLowerCase()) || p.supplier.toLowerCase().includes(searchQ.toLowerCase()))
-    : mockProducts;
+    ? products.filter(p => p.productName?.toLowerCase().includes(searchQ.toLowerCase()))
+    : products.slice(0, 8);
 
-  const addItem = (product: typeof mockProducts[0]) => {
-    const gstAmt  = (product.cost * product.gst) / 100;
-    const landed  = product.cost + gstAmt;
+  const addItem = (product: any) => {
+    const cost    = product.purchasePrice || 0;
+    const gstPct  = 18; // default GST
+    const gstAmt  = (cost * gstPct) / 100;
+    const landed  = cost + gstAmt;
     const defMgn  = 20;
     const sRate   = Math.round(landed * (1 + defMgn / 100));
     const gstRate = 18;
@@ -87,17 +92,17 @@ export const EstimateForm = ({ onCancel }: EstimateFormProps) => {
 
     setItems(prev => [...prev, {
       id: Math.random().toString(36).substr(2, 9),
-      productId: product.id,
-      name: product.name,
-      supplier: product.supplier,
-      purchaseRate: product.cost,
-      purchaseGst: product.gst,
+      productId: product.id.toString(),
+      name: product.productName,
+      supplier: product.supplier || 'N/A',
+      purchaseRate: cost,
+      purchaseGst: gstPct,
       landedCost: landed,
       marginType: 'percentage',
       margin: defMgn,
       salesRate: sRate,
       qty: 1,
-      unit: product.unit,
+      unit: product.unit || 'PCS',
       gstRate,
       total,
     }]);
@@ -164,9 +169,50 @@ export const EstimateForm = ({ onCancel }: EstimateFormProps) => {
   const grandTotal = subtotal + totalGst;
   const totalProfit = items.reduce((a, b) => a + (b.salesRate - b.landedCost) * b.qty, 0);
 
-  const handleSave = () => {
-    setIsSaved(true);
-    setTimeout(() => { setIsSaved(false); onCancel(); }, 1500);
+  const handleSave = async () => {
+    if (!clientName.trim()) {
+      toast.error('Customer name is required');
+      return;
+    }
+    if (items.length === 0) {
+      toast.error('Add at least one item to the estimate');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        customerName: clientName,
+        customerGstin: clientGst,
+        customerAddress: clientAddr,
+        notes,
+        totalAmount: grandTotal,
+        netAmount: subtotal,
+        taxAmount: totalGst,
+        status: 'PENDING',
+        items: items.map(i => ({
+          product: { id: parseInt(i.productId) },
+          quantity: i.qty,
+          unitPrice: i.salesRate,
+          taxRate: i.gstRate,
+          totalPrice: i.total
+        }))
+      };
+
+      const res = await salesApi.saveEstimate(payload);
+      if (res.status === 1) {
+        toast.success('Estimate saved successfully!');
+        setIsSaved(true);
+        setTimeout(() => { setIsSaved(false); onCancel(); }, 1500);
+      } else {
+        toast.error(res.message || 'Failed to save estimate');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error while saving estimate');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

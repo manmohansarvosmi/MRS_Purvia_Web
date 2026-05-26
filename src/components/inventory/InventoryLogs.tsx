@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   History, 
   ArrowUpRight, 
@@ -11,23 +11,50 @@ import {
   ChevronRight,
   Clock
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-const movements = [
-  { id: '1', type: 'IN',       item: 'Solar Panel 450W Mono-Crystalline',  sku: 'SP-450-MO',   qty: 50,  from: 'Vendor: Tata Solar',     to: 'Main Hub',          time: '2 mins ago',   status: 'Completed'  },
-  { id: '2', type: 'OUT',      item: 'Hybrid Inverter 5kVA — Series 9',    sku: 'INV-HYB-5',   qty: 2,   from: 'Main Hub',               to: 'Customer: Sharma',  time: '15 mins ago',  status: 'Completed'  },
-  { id: '3', type: 'TRANSFER', item: 'Lithium Battery 100Ah (Deep Cycle)', sku: 'BATT-LI-100', qty: 10,  from: 'Main Hub',               to: 'Delhi Depot',       time: '1 hour ago',   status: 'In Transit' },
-  { id: '4', type: 'IN',       item: 'DC Wire 4sqmm (100m Roll)',          sku: 'WIRE-DC-4',   qty: 100, from: 'Vendor: Havells',        to: 'Secondary',         time: '3 hours ago',  status: 'Completed'  },
-  { id: '5', type: 'OUT',      item: 'MPPT Controller 60A Pulse',          sku: 'MPPT-60A',    qty: 3,   from: 'Main Hub',               to: 'Customer: Verma',   time: '5 hours ago',  status: 'Completed'  },
-];
+import { cn } from '@/src/lib/utils';
+import { inventoryApi } from '../../lib/api';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const typeConfig = {
   IN:       { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: ArrowDownRight },
   OUT:      { bg: 'bg-rose-50',    text: 'text-rose-600',    border: 'border-rose-100',    icon: ArrowUpRight   },
-  TRANSFER: { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  icon: RefreshCw      },
+  ADJUST:   { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  icon: RefreshCw      },
+  RETURN:   { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',   icon: RefreshCw      },
 };
 
 export const InventoryLogs = () => {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getAllLogs();
+      if (res.status === 1) {
+        setLogs(res.data);
+      } else {
+        toast.error(res.message || "Failed to fetch logs");
+      }
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      toast.error("An error occurred while fetching logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getLogType = (type: string) => {
+    if (type === 'PURCHASE') return 'IN';
+    if (type === 'SALE') return 'OUT';
+    if (type === 'ADJUSTMENT') return 'ADJUST';
+    if (type === 'RETURN') return 'RETURN';
+    return 'ADJUST';
+  };
   return (
     <div className="flex-1 flex flex-col bg-slate-100/40 overflow-hidden">
 
@@ -83,8 +110,21 @@ export const InventoryLogs = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 bg-white">
-                {movements.map((m) => {
-                  const cfg = typeConfig[m.type as keyof typeof typeConfig];
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-10 text-center text-slate-400 uppercase tracking-widest text-[10px]">
+                      Loading Logs...
+                    </td>
+                  </tr>
+                ) : logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-10 text-center text-slate-400 uppercase tracking-widest text-[10px]">
+                      No Movement Logs
+                    </td>
+                  </tr>
+                ) : logs.map((m) => {
+                  const type = getLogType(m.logType);
+                  const cfg = typeConfig[type as keyof typeof typeConfig];
                   const Icon = cfg.icon;
                   return (
                     <tr key={m.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -93,33 +133,36 @@ export const InventoryLogs = () => {
                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white border border-transparent group-hover:border-slate-200 transition-all">
                               <Clock className="w-4 h-4" />
                            </div>
-                           <span className="text-xs font-medium text-slate-900 tracking-tight">{m.time}</span>
+                           <span className="text-xs font-medium text-slate-900 tracking-tight">
+                             {m.createdOn ? format(new Date(m.createdOn), 'dd MMM, hh:mm a') : 'N/A'}
+                           </span>
                         </div>
                       </td>
                       <td className="px-8 py-5">
                         <div className={cn('inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-semibold uppercase tracking-widest', cfg.bg, cfg.text, cfg.border)}>
                           <Icon className="w-3.5 h-3.5" />
-                          {m.type}
+                          {m.logType}
                         </div>
                       </td>
                       <td className="px-8 py-5">
-                        <p className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors">{m.item}</p>
-                        <p className="text-[10px] font-normal text-slate-400 mt-2 uppercase tracking-widest">SKU: {m.sku}</p>
+                        <p className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors">{m.product?.productName}</p>
+                        <p className="text-[10px] font-normal text-slate-400 mt-2 uppercase tracking-widest">SKU: {m.product?.sku}</p>
                       </td>
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4 text-xs font-normal text-slate-600">
-                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">{m.from}</span>
+                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">Stock: {m.previousStock}</span>
                           <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
-                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">{m.to}</span>
+                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">Final: {m.finalStock}</span>
                         </div>
                       </td>
                       <td className="px-8 py-5">
                         <div className="space-y-1">
-                           <p className="text-sm font-semibold text-slate-900">{m.qty > 0 ? `+${m.qty}` : m.qty} Units</p>
-                           <span className={cn(
-                             'text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md',
-                             m.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                           )}>{m.status}</span>
+                           <p className="text-sm font-semibold text-slate-900">
+                             {m.changeAmount > 0 ? `+${m.changeAmount}` : m.changeAmount} {m.product?.unit}
+                           </p>
+                           <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700">
+                             {m.reason || 'Completed'}
+                           </span>
                         </div>
                       </td>
                     </tr>
@@ -130,7 +173,7 @@ export const InventoryLogs = () => {
           </div>
 
           <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-[10px] font-medium text-slate-400 uppercase tracking-widest">
-            {movements.length} audit logs displayed for current session
+            {logs.length} audit logs displayed for current session
           </div>
         </div>
       </div>

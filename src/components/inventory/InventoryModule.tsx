@@ -4,7 +4,7 @@ import { InventoryLogs } from './InventoryLogs';
 import { WarehouseUnits } from './WarehouseUnits';
 import { StockAdjustment } from './StockAdjustment';
 import { PurchaseModule } from './PurchaseModule';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { 
   Box, 
   History, 

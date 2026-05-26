@@ -13,28 +13,44 @@ import {
   AlertCircle,
   IndianRupee
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { PurchaseOrderForm } from './PurchaseOrderForm';
-
-const purchaseOrders = [
-  { id: 'PO-2026-0042', vendor: 'Tata Solar Systems',  items: 15,  value: '₹14.2L', date: 'Today',     eta: '28 May',     status: 'Sent'     },
-  { id: 'PO-2026-0041', vendor: 'Havells India',        items: 120, value: '₹2.4L',  date: 'Yesterday', eta: 'Delivered',  status: 'Received' },
-  { id: 'PO-2026-0030', vendor: 'Microtek Power',       items: 8,   value: '₹8.9L',  date: '12 May',    eta: '30 May',     status: 'Partial'  },
-  { id: 'PO-2026-0029', vendor: 'Luminous Tech',        items: 40,  value: '₹6.1L',  date: '10 May',    eta: '26 May',     status: 'Sent'     },
-  { id: 'PO-2026-0028', vendor: 'Waaree Energies',      items: 22,  value: '₹19.8L', date: '9 May',     eta: 'Delivered',  status: 'Received' },
-];
+import { inventoryApi } from '@/src/lib/api';
+import { toast } from 'sonner';
 
 const statusConfig = {
-  'Received': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', dot: 'bg-emerald-500' },
-  'Partial':  { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',   dot: 'bg-amber-500'   },
-  'Sent':     { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  dot: 'bg-indigo-400'  },
+  'RECEIVED': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', dot: 'bg-emerald-500' },
+  'PARTIAL':  { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',   dot: 'bg-amber-500'   },
+  'PENDING':  { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  dot: 'bg-indigo-400'  },
+  'SENT':     { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  dot: 'bg-indigo-400'  },
 };
 
 export const PurchaseModule = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchPurchases();
+  }, []);
+
+  const fetchPurchases = async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getAllPurchases();
+      if (res.status === 1) {
+        setPurchases(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching purchases:", error);
+      toast.error("Failed to load purchase records");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (view === 'create') {
-    return <PurchaseOrderForm onBack={() => setView('list')} />;
+    return <PurchaseOrderForm onBack={() => { setView('list'); fetchPurchases(); }} />;
   }
 
   return (
@@ -68,9 +84,9 @@ export const PurchaseModule = () => {
         {/* Compact Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
            {[
-             { label: 'Active POs', value: '7', icon: ShoppingCart, color: 'text-primary' },
-             { label: 'Open Value', value: '₹43.2L', icon: IndianRupee, color: 'text-amber-600' },
-             { label: 'Received (MTD)', value: '18 Units', icon: PackageCheck, color: 'text-emerald-600' },
+             { label: 'Active POs', value: purchases.length.toString(), icon: ShoppingCart, color: 'text-primary' },
+             { label: 'Open Value', value: `₹${purchases.reduce((a, b) => a + (b.netAmount || 0), 0).toLocaleString()}`, icon: IndianRupee, color: 'text-amber-600' },
+             { label: 'Received (MTD)', value: `${purchases.filter(p => p.status === 'RECEIVED').length} Orders`, icon: PackageCheck, color: 'text-emerald-600' },
            ].map((s, i) => (
              <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-primary/20 transition-all">
                 <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
@@ -104,39 +120,52 @@ export const PurchaseModule = () => {
             <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  {['PO Number', 'Vendor Details', 'Summary', 'ETA', 'Status', ''].map(h => (
+                  {['PO Number', 'Vendor Details', 'Summary', 'Date', 'Status', ''].map(h => (
                     <th key={h} className="px-6 py-3 text-[9px] font-semibold uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {purchaseOrders.map((po) => {
-                  const cfg = statusConfig[po.status as keyof typeof statusConfig];
+                {loading ? (
+                    <tr>
+                        <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-xs italic">
+                            Fetching procurement data...
+                        </td>
+                    </tr>
+                ) : purchases.length === 0 ? (
+                    <tr>
+                        <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-xs italic">
+                            No purchase orders found
+                        </td>
+                    </tr>
+                ) : purchases.map((po) => {
+                  const status = po.status || 'PENDING';
+                  const cfg = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
                   return (
                     <tr key={po.id} className="hover:bg-slate-50/30 transition-colors group">
                       <td className="px-6 py-4">
-                        <span className="text-xs font-bold text-slate-800 font-mono italic">{po.id}</span>
+                        <span className="text-xs font-bold text-slate-800 font-mono italic">{po.invoiceNumber || `PO-${po.id}`}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                            <Building2 className="w-3.5 h-3.5 text-slate-300" />
-                           <span className="text-sm font-medium text-slate-700 group-hover:text-primary transition-colors">{po.vendor}</span>
+                           <span className="text-sm font-medium text-slate-700 group-hover:text-primary transition-colors">{po.supplier?.supplierName || 'N/A'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-slate-800">{po.value}</p>
-                        <p className="text-[9px] font-normal text-slate-400 uppercase mt-0.5">{po.items} Units</p>
+                        <p className="text-sm font-bold text-slate-800">₹{po.netAmount?.toLocaleString()}</p>
+                        <p className="text-[9px] font-normal text-slate-400 uppercase mt-0.5">{po.items?.length || 0} Items</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-xs font-normal text-slate-500">
                            <Clock className="w-3.5 h-3.5 opacity-40" />
-                           <span>{po.eta}</span>
+                           <span>{po.purchaseDate ? new Date(po.purchaseDate).toLocaleDateString() : 'N/A'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-widest', cfg.bg, cfg.text, cfg.border)}>
                           <span className={cn('w-1 h-1 rounded-full', cfg.dot)} />
-                          {po.status}
+                          {status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">

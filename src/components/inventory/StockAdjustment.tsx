@@ -11,7 +11,7 @@ import {
   ChevronRight,
   ClipboardList
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { NewAdjustmentForm } from './NewAdjustmentForm';
 
 const adjustments = [

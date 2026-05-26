@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, 
   FileText, 
@@ -30,15 +30,38 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-
-const mockSalesData = [
-  { id: 'INV-1001', customer: 'Rahul Verma', phone: '9827163544', date: '2026-04-15', amount: 45000, items: 3, warranty: 'Active' },
-  { id: 'INV-1002', customer: 'Anita Gupta', phone: '7726354411', date: '2026-04-10', amount: 12500, items: 1, warranty: 'Active' },
-  { id: 'INV-1003', customer: 'Sunil Singh', phone: '9928172635', date: '2025-10-05', amount: 8000, items: 2, warranty: 'Expired' },
-];
+import { inventoryApi } from '../../lib/api';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export const SalesInvoices = () => {
+  const [sales, setSales] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
+
+  useEffect(() => {
+    fetchSales();
+  }, []);
+
+  const fetchSales = async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getAllSales();
+      if (res.status === 1) {
+        setSales(res.data);
+      } else {
+        toast.error(res.message || "Failed to fetch sales");
+      }
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      toast.error("An error occurred while fetching sales");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalRevenue = sales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+  const activeWarranties = sales.length; // Simplified
 
   return (
     <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8 custom-scrollbar">
@@ -94,7 +117,7 @@ export const SalesInvoices = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12" />
           <CardContent className="p-6 relative z-10">
             <p className="text-[10px] font-medium uppercase tracking-widest text-white/60 italic mb-4">Total Revenue Acquisition (MTD)</p>
-            <h3 className="text-4xl font-medium italic tracking-tighter text-white">₹8.42L</h3>
+            <h3 className="text-4xl font-medium italic tracking-tighter text-white">₹{totalRevenue.toLocaleString()}</h3>
           </CardContent>
         </Card>
         
@@ -157,7 +180,19 @@ export const SalesInvoices = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-             {mockSalesData.map((sale) => (
+             {loading ? (
+               <TableRow>
+                 <TableCell colSpan={6} className="h-32 text-center text-slate-400 uppercase tracking-widest text-[10px] italic">
+                   Extracting acquisition records...
+                 </TableCell>
+               </TableRow>
+             ) : sales.length === 0 ? (
+               <TableRow>
+                 <TableCell colSpan={6} className="h-32 text-center text-slate-400 uppercase tracking-widest text-[10px] italic">
+                   No transactions recorded in current matrix
+                 </TableCell>
+               </TableRow>
+             ) : sales.map((sale) => (
                <TableRow key={sale.id} className="group hover:bg-slate-100/40 border-b border-slate-50/50 transition-all">
                  <TableCell className="px-8 py-6 font-mono font-medium italic text-primary tracking-tighter">[{sale.id}]</TableCell>
                  <TableCell className="px-8 py-6">
@@ -166,21 +201,21 @@ export const SalesInvoices = () => {
                         <User className="w-4 h-4 text-slate-400" />
                       </div>
                       <div>
-                        <p className="font-normal text-slate-900">{sale.customer}</p>
-                        <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-tighter">{sale.phone}</p>
+                        <p className="font-normal text-slate-900">{sale.customerName}</p>
+                        <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-tighter">{sale.customerPhone}</p>
                       </div>
                     </div>
                  </TableCell>
                  <TableCell className="px-8 py-6 text-xs font-normal text-slate-500 italic">
-                   {new Date(sale.date).toLocaleDateString()}
+                   {sale.createdOn ? format(new Date(sale.createdOn), 'dd MMM yyyy') : 'N/A'}
                  </TableCell>
                  <TableCell className="px-8 py-6">
-                    <p className="text-lg font-medium italic tracking-tighter text-slate-900">₹{sale.amount.toLocaleString()}</p>
-                    <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-widest">{sale.items} Items</p>
+                    <p className="text-lg font-medium italic tracking-tighter text-slate-900">₹{sale.totalAmount?.toLocaleString()}</p>
+                    <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-widest">{sale.items?.length || 0} Assets</p>
                  </TableCell>
                  <TableCell className="px-8 py-6">
                     <div className="flex items-center gap-1.5">
-                      {sale.warranty === 'Active' ? (
+                      {sale.paymentStatus === 'PAID' ? (
                         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-medium uppercase italic">Secured</span>
@@ -188,7 +223,7 @@ export const SalesInvoices = () => {
                       ) : (
                         <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 text-slate-400 rounded-lg border border-slate-200">
                           <ShieldAlert className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-medium uppercase italic">Terminated</span>
+                          <span className="text-[10px] font-medium uppercase italic">Pending</span>
                         </div>
                       )}
                     </div>

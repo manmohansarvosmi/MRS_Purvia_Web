@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   Save, 
@@ -9,11 +9,49 @@ import {
   MapPin,
   ShieldCheck,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
+import { salesApi } from '@/src/lib/api';
+import { toast } from 'sonner';
 
 export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    gstin: '',
+    customerType: 'RETAIL',
+    companyName: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone) {
+      toast.error('Name and Phone are required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await salesApi.saveCustomer(formData);
+      if (response.success) {
+        toast.success('Customer registered successfully');
+        onCancel();
+      } else {
+        toast.error(response.message || 'Failed to register customer');
+      }
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('An error occurred while saving the customer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-gray-100 shadow-xl p-8 lg:p-12 animate-in fade-in zoom-in-95 duration-400 rounded-xl">
       {/* Header */}
@@ -32,7 +70,7 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
          </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
          {/* Left Column: Business Profile */}
          <div className="lg:col-span-7 space-y-8">
             <div className="space-y-2.5">
@@ -41,6 +79,8 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
                   type="text" 
                   placeholder="e.g. Tata Consultancy Services Ltd." 
                   className="w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-normal focus:bg-white focus:ring-4 focus:ring-red-50 focus:border-primary outline-none transition-all" 
+                  value={formData.companyName}
+                  onChange={e => setFormData(p => ({ ...p, companyName: e.target.value }))}
                />
             </div>
 
@@ -51,15 +91,21 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
                      type="text" 
                      placeholder="09AAAAA0000A1Z5" 
                      className="w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-normal focus:bg-white focus:ring-4 focus:ring-red-50 focus:border-primary outline-none uppercase transition-all" 
+                     value={formData.gstin}
+                     onChange={e => setFormData(p => ({ ...p, gstin: e.target.value }))}
                   />
                </div>
                <div className="space-y-2.5 relative">
                   <label className="text-[13px] font-semibold text-gray-700 ml-0.5">Account Tier</label>
                   <div className="relative">
-                     <select className="w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-normal focus:bg-white focus:ring-4 focus:ring-red-50 focus:border-primary outline-none appearance-none cursor-pointer">
-                        <option>Wholesale Partner</option>
-                        <option>Retail Customer</option>
-                        <option>Direct Enterprise</option>
+                     <select 
+                        className="w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-normal focus:bg-white focus:ring-4 focus:ring-red-50 focus:border-primary outline-none appearance-none cursor-pointer"
+                        value={formData.customerType}
+                        onChange={e => setFormData(p => ({ ...p, customerType: e.target.value }))}
+                     >
+                        <option value="WHOLESALE">Wholesale Partner</option>
+                        <option value="RETAIL">Retail Customer</option>
+                        <option value="ENTERPRISE">Direct Enterprise</option>
                      </select>
                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
@@ -73,6 +119,8 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
                   <textarea 
                      placeholder="Enter full address details for invoicing" 
                      className="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-normal focus:bg-white focus:ring-4 focus:ring-red-50 focus:border-primary outline-none h-28 resize-none transition-all" 
+                     value={formData.address}
+                     onChange={e => setFormData(p => ({ ...p, address: e.target.value }))}
                   />
                </div>
             </div>
@@ -84,23 +132,43 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-4">Communication Details</h4>
                
                <div className="space-y-2.5">
-                  <label className="text-[12px] font-semibold text-gray-600 ml-0.5">Contact Person</label>
-                  <input type="text" placeholder="Full name of representative" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" />
+                  <label className="text-[12px] font-semibold text-gray-600 ml-0.5">Contact Person*</label>
+                  <input 
+                    type="text" 
+                    placeholder="Full name of representative" 
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" 
+                    value={formData.name}
+                    onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
+                    required
+                  />
                </div>
 
                <div className="space-y-4">
                   <div className="space-y-2.5">
-                     <label className="text-[12px] font-semibold text-gray-600 ml-0.5">Phone Number</label>
+                     <label className="text-[12px] font-semibold text-gray-600 ml-0.5">Phone Number*</label>
                      <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="tel" placeholder="+91" className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" />
+                        <input 
+                           type="tel" 
+                           placeholder="+91" 
+                           className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" 
+                           value={formData.phone}
+                           onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
+                           required
+                        />
                      </div>
                   </div>
                   <div className="space-y-2.5">
                      <label className="text-[12px] font-semibold text-gray-600 ml-0.5">Email Address</label>
                      <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="email" placeholder="contact@company.com" className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" />
+                        <input 
+                           type="email" 
+                           placeholder="contact@company.com" 
+                           className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:border-primary/30" 
+                           value={formData.email}
+                           onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                        />
                      </div>
                   </div>
                </div>
@@ -116,16 +184,29 @@ export const AddCustomerForm = ({ onCancel }: { onCancel: () => void }) => {
                </div>
             </div>
          </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-end gap-6">
-         <button onClick={onCancel} className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors px-4">Cancel Entry</button>
-         <button className="px-10 py-4 bg-primary text-white text-sm font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-100 flex items-center gap-3 rounded-lg group">
-            Complete Registration
-            <ShieldCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
-         </button>
-      </div>
+         {/* Footer Overlay (Absolute positioned in the relative parent if needed, but here it's part of the grid) */}
+         <div className="lg:col-span-12 mt-12 pt-8 border-t border-gray-100 flex items-center justify-end gap-6">
+            <button type="button" onClick={onCancel} className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors px-4">Cancel Entry</button>
+            <button 
+               type="submit"
+               disabled={loading}
+               className="px-10 py-4 bg-primary text-white text-sm font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-100 flex items-center gap-3 rounded-lg group disabled:opacity-50"
+            >
+               {loading ? (
+                  <>
+                     <Loader2 className="w-4 h-4 animate-spin" />
+                     Registering...
+                  </>
+               ) : (
+                  <>
+                     Complete Registration
+                     <ShieldCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  </>
+               )}
+            </button>
+         </div>
+      </form>
     </div>
   );
 };

@@ -24,7 +24,7 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SidebarProps {

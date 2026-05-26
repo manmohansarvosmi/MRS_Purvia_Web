@@ -4,7 +4,7 @@ import { CRMModule } from '../crm/CRMModule';
 import { QuotationModule } from './QuotationModule';
 import { SalesHistory } from './SalesHistory';
 import { POSModule } from './POSModule';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import {
   FileText,
   Users,
@@ -16,35 +16,48 @@ import { motion } from 'motion/react';
 
 export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string }) => {
   const [subTab, setSubTab] = React.useState(initialSubTab);
+  const [isQuotationCreation, setIsQuotationCreation] = React.useState(false);
   // When an estimate is converted → store its data, open billing tab
   const [pendingEstimate, setPendingEstimate] = React.useState<EstimateSource | null>(null);
 
   React.useEffect(() => {
     setSubTab(initialSubTab);
+    setIsQuotationCreation(false);
   }, [initialSubTab]);
 
   // Called from QuotationModule "Convert to Invoice" button
   const handleConvertToInvoice = (estimate: EstimateSource) => {
     setPendingEstimate(estimate);
+    setIsQuotationCreation(false);
     setSubTab('billing');
   };
 
   // Clear pending estimate when user manually switches away from billing
   const handleTabChange = (tab: string) => {
     if (tab !== 'billing') setPendingEstimate(null);
+    setIsQuotationCreation(false);
     setSubTab(tab);
   };
 
   const renderContent = () => {
+    if (isQuotationCreation) {
+      return (
+        <GSTInvoiceForm 
+          isQuotation={true} 
+          onSuccess={() => { setIsQuotationCreation(false); setSubTab('quotations'); }} 
+        />
+      );
+    }
+
     switch (subTab) {
       case 'pos':
         return <POSModule />;
       case 'billing':
-        return <GSTInvoiceForm fromEstimate={pendingEstimate ?? undefined} />;
+        return <GSTInvoiceForm fromEstimate={pendingEstimate ?? undefined} onSuccess={() => { setPendingEstimate(null); setSubTab('sales-logs'); }} />;
       case 'customers':
         return <CRMModule />;
       case 'quotations':
-        return <QuotationModule onConvertToInvoice={handleConvertToInvoice} />;
+        return <QuotationModule onConvertToInvoice={handleConvertToInvoice} onCreateNew={() => setIsQuotationCreation(true)} />;
       case 'sales-logs':
         return <SalesHistory />;
       default:

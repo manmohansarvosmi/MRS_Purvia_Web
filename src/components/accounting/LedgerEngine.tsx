@@ -16,7 +16,7 @@ import {
   ArrowUpRight,
   ChevronDown
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AccountManager } from './modules/AccountManager';
 import { LedgerDirectory } from './modules/LedgerDirectory';
@@ -61,11 +61,11 @@ export const LedgerEngine = ({ initialTab }: LedgerEngineProps) => {
       <div className="bg-white border-b border-slate-200 px-6 py-2 shrink-0">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
           {[
-            { id: 'accounts', label: 'Accounts', icon: CreditCard },
-            { id: 'ledger', label: 'Ledger Registry', icon: BookOpen },
-            { id: 'cashbook', label: 'Cash Book', icon: Banknote },
-            { id: 'daybook', label: 'Day Book', icon: History },
-            { id: 'vouchers', label: 'Voucher Entry', icon: ArrowRightLeft },
+            { id: 'accounts', label: 'Bank & Cash Master', icon: CreditCard },
+            { id: 'ledger', label: 'Other Account Masters', icon: BookOpen },
+            { id: 'vouchers', label: 'Voucher (Ledger) Entry', icon: ArrowRightLeft },
+            { id: 'daybook', label: 'Day Book (Entries)', icon: History },
+            { id: 'cashbook', label: 'Cash/Bank Book', icon: Banknote },
             { id: 'expenses', label: 'Expenses', icon: TrendingDown },
             { id: 'income', label: 'Income', icon: TrendingUp },
             { id: 'trial-balance', label: 'Trial Balance', icon: Filter },

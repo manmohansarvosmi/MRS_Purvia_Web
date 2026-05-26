@@ -2,7 +2,7 @@ import React from 'react';
 import { EmployeeList } from './EmployeeList';
 import { AttendanceView } from './AttendanceView';
 import { SalaryManagement } from './SalaryManagement';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 export const EmployeeModule = () => {
   const [subTab, setSubTab] = React.useState('list');

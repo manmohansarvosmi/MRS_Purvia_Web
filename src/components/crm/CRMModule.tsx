@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -10,17 +10,13 @@ import {
   Search,
   Filter,
   ArrowUpRight,
-  Target
+  Target,
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '@/lib/utils';
-
-const customers = [
-  { id: '1', name: 'Rajesh Kumar', company: 'Kumar Electronics', level: 'VIP', lastContact: '2 hours ago', value: '₹4.5L', status: 'Hot Lead' },
-  { id: '2', name: 'Priya Sharma', company: 'Global Solutions', level: 'Regular', lastContact: '1 day ago', value: '₹1.2L', status: 'Active' },
-  { id: '3', name: 'Amit Singh', company: 'Singh & Sons', level: 'VIP', lastContact: '3 days ago', value: '₹8.9L', status: 'Negotiation' },
-  { id: '4', name: 'Suresh Raina', company: 'Raina Trading', level: 'New', lastContact: 'Just now', value: '₹0', status: 'Prospect' },
-];
+import { cn } from '@/src/lib/utils';
+import { salesApi } from '@/src/lib/api';
+import { AddCustomerForm } from './AddCustomerForm';
 
 const PipelineView = () => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-[500px]">
@@ -74,11 +70,27 @@ const FollowUpView = () => (
   </div>
 );
 
-import { AddCustomerForm } from './AddCustomerForm';
-
 export const CRMModule = () => {
-  const [activeView, setActiveView] = React.useState('database');
-  const [isAdding, setIsAdding] = React.useState(false);
+  const [activeView, setActiveView] = useState('database');
+  const [isAdding, setIsAdding] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await salesApi.getAllCustomers();
+        if (response.data.success) {
+          setCustomers(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCustomers();
+  }, []);
 
   const renderViewContent = () => {
     if (isAdding) return <AddCustomerForm onCancel={() => setIsAdding(false)} />;
@@ -103,15 +115,23 @@ export const CRMModule = () => {
              </div>
 
              <div className="divide-y divide-slate-50">
-                {customers.map((c) => (
+                {loading ? (
+                   <div className="p-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                      Synchronizing client database...
+                   </div>
+                ) : customers.length === 0 ? (
+                   <div className="p-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                      No active customer profiles found
+                   </div>
+                ) : customers.map((c) => (
                    <div key={c.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
                       <div className="flex items-center gap-5">
                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-primary group-hover:text-white transition-all">
-                            {c.name[0]}
+                            {c.name?.[0] || 'U'}
                          </div>
                          <div>
                             <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{c.name}</h4>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.company}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.companyName || 'Individual'}</p>
                          </div>
                       </div>
 
@@ -121,11 +141,11 @@ export const CRMModule = () => {
                             <span className={cn(
                                "px-2 py-0.5 rounded text-[8px] font-black uppercase border",
                                c.status === 'Hot Lead' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            )}>{c.status}</span>
+                            )}>Active Client</span>
                          </div>
                          <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Deal Value</p>
-                            <p className="text-xs font-black text-slate-900">{c.value}</p>
+                            <p className="text-xs font-black text-slate-900">₹4.5L</p>
                          </div>
                          <div className="flex items-center gap-2">
                             <button className="p-2 hover:bg-primary/5 hover:text-primary rounded-xl text-slate-300 transition-colors"><Phone className="w-4 h-4" /></button>
@@ -181,7 +201,7 @@ export const CRMModule = () => {
          {/* Stats */}
          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
-               { label: 'Active Clients', value: '450', color: 'slate', icon: Users },
+               { label: 'Active Clients', value: customers.length.toString(), color: 'slate', icon: Users },
                { label: 'Won Deals', value: '₹1.2Cr', color: 'emerald', icon: ArrowUpRight },
                { label: 'Conversion', value: '24%', color: 'indigo', icon: Target },
                { label: 'Lost Deals', value: '₹8.4L', color: 'rose', icon: MessageSquare }

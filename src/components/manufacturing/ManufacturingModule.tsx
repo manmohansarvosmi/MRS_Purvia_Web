@@ -13,7 +13,7 @@ import {
   Plus,
   ArrowRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 const machines = [
   { id: '1', name: 'Unit A: Assembly Line', status: 'Running', load: 85, health: 'Good', output: '450/hr' },

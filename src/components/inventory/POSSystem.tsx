@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -22,31 +22,41 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { cn } from "@/src/lib/utils";
-import { Product, SaleItem } from '../../types';
-
-// Mock products for the POS
-const MOCK_PRODUCTS: Product[] = [
-  { id: '1', name: 'Solar Panel 400W', sku: 'SP-400W', category: 'Hardware', quantity: 45, unit: 'pcs', purchasePrice: 12000, salePrice: 15000, minStockLevel: 10, warrantyMonths: 24 },
-  { id: '2', name: 'Inverter 5KVA', sku: 'INV-5KVA', category: 'Electrical', quantity: 12, unit: 'pcs', purchasePrice: 35000, salePrice: 42000, minStockLevel: 5, warrantyMonths: 36 },
-  { id: '3', name: 'Battery 150Ah', sku: 'BATT-150', category: 'Storage', quantity: 28, unit: 'pcs', purchasePrice: 10500, salePrice: 13500, minStockLevel: 8, warrantyMonths: 60 },
-  { id: '4', name: 'Solar Controller 60A', sku: 'SC-60A', category: 'Control', quantity: 15, unit: 'pcs', purchasePrice: 4500, salePrice: 5800, minStockLevel: 3, warrantyMonths: 12 },
-  { id: '5', name: 'AC Cable 10mm', sku: 'CAB-10MM', category: 'Wiring', quantity: 500, unit: 'meters', purchasePrice: 85, salePrice: 120, minStockLevel: 100, warrantyMonths: 0 },
-];
+import { inventoryApi } from '../../lib/api';
 
 export const POSSystem = () => {
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<(SaleItem & { id: string })[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getAllProducts();
+      if (res.status === 1) {
+        setProducts(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching products", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   const filteredProducts = useMemo(() => 
-    MOCK_PRODUCTS.filter(p => 
-      p.name.toLowerCase().includes(search.toLowerCase()) || 
+    products.filter(p => 
+      p.productName.toLowerCase().includes(search.toLowerCase()) || 
       p.sku.toLowerCase().includes(search.toLowerCase())
-    ), [search]);
+    ), [search, products]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.productId === product.id);
       if (existing) {
@@ -57,13 +67,13 @@ export const POSSystem = () => {
       return [...prev, {
         id: Math.random().toString(36).substr(2, 9),
         productId: product.id,
-        name: product.name,
+        name: product.productName,
         qty: 1,
-        price: product.salePrice,
-        warrantyExpiry: new Date(Date.now() + product.warrantyMonths * 30 * 24 * 60 * 60 * 1000).toISOString()
+        price: product.sellingPrice,
+        unit: product.unit
       }];
     });
-    toast.success(`${product.name} added to cart`);
+    toast.success(`${product.productName} added to cart`);
   };
 
   const updateQty = (id: string, delta: number) => {
@@ -96,18 +106,43 @@ export const POSSystem = () => {
       return;
     }
 
-    setIsProcessing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toast.success('TRANSACTION SUCCESSFUL', {
-      description: `Invoice generated for ${customer.name}`,
-      icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-    });
-    
-    setCart([]);
-    setCustomer({ name: '', phone: '' });
-    setIsProcessing(false);
+    try {
+      setIsProcessing(true);
+      
+      const payload = {
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        items: cart.map(item => ({
+          product: { id: item.productId },
+          quantity: item.qty,
+          unitPrice: item.price,
+          totalPrice: item.price * item.qty
+        })),
+        totalAmount: totals.total,
+        paymentStatus: 'PAID',
+        paymentMethod: paymentMethod.toUpperCase(),
+        isPos: true
+      };
+
+      const res = await inventoryApi.saveSale(payload);
+      
+      if (res.status === 1) {
+        toast.success('TRANSACTION SUCCESSFUL', {
+          description: `Invoice generated: #${res.data?.id}`,
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        });
+        setCart([]);
+        setCustomer({ name: '', phone: '' });
+        fetchProducts(); // Refresh stock
+      } else {
+        toast.error(res.message || "Checkout failed");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("An error occurred during checkout");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -148,11 +183,11 @@ export const POSSystem = () => {
                     <div className="w-full aspect-square bg-slate-50 rounded-lg mb-4 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
                       <Package className="w-7 h-7 text-slate-300 group-hover:text-primary transition-colors" />
                     </div>
-                    <h4 className="text-sm font-normal text-slate-900 line-clamp-1 mb-1">{product.name}</h4>
+                    <h4 className="text-sm font-normal text-slate-900 line-clamp-1 mb-1">{product.productName}</h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-normal text-primary">₹{product.salePrice.toLocaleString()}</p>
+                      <p className="text-sm font-normal text-primary">₹{product.sellingPrice?.toLocaleString()}</p>
                       <Badge variant="outline" className="text-[8px] font-normal uppercase tracking-tighter border-slate-200 bg-slate-50 text-slate-400">
-                        {product.quantity} In Stock
+                        {product.stockQuantity} In Stock
                       </Badge>
                     </div>
                   </CardContent>

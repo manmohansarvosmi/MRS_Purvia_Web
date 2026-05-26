@@ -12,7 +12,7 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
 
 export const GSTModule = () => {

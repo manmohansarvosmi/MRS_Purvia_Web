@@ -18,7 +18,7 @@ import {
   MoreVertical,
   Plus
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 const settingSections = [
   { id: 'profile', label: 'Identity & Access', icon: User, desc: 'Manage personal details and credentials' },

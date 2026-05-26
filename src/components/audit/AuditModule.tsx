@@ -11,7 +11,7 @@ import {
   Activity,
   Lock
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 const auditLogs = [
   { id: '1', action: 'Login Success', user: 'Admin User', module: 'System', time: '10 mins ago', ip: '192.168.1.42' },

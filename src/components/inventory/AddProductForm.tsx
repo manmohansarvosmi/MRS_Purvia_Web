@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Save, 
@@ -18,7 +18,9 @@ import {
   CheckCircle2,
   ArrowLeft
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
+import { inventoryApi } from '../../lib/api';
+import { toast } from 'sonner';
 
 interface AddProductFormProps {
   onCancel: () => void;
@@ -41,6 +43,93 @@ const selectClass = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded
 export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
   const [activeSection, setActiveSection] = useState<'basic' | 'pricing' | 'stock' | 'tax'>('basic');
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  const [formData, setFormData] = useState({
+    productName: '',
+    description: '',
+    sku: '',
+    barcode: '',
+    category: { id: null },
+    brand: '',
+    purchasePrice: 0,
+    sellingPrice: 0,
+    stockQuantity: 0,
+    lowStockThreshold: 10,
+    unit: 'PCS',
+    hsnCode: '',
+    warehouse: { id: null },
+    rackLocation: '',
+    gstRate: 18,
+    taxType: 'EXCLUSIVE',
+  });
+
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchWarehouses();
+  }, []);
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await inventoryApi.getAllWarehouses();
+      if (res.status === 1) {
+        setWarehouses(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching warehouses", err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await inventoryApi.getAllCategories();
+      if (res.status === 1) {
+        setCategories(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching categories", err);
+    }
+  };
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+    if (name === 'categoryId') {
+      setFormData(prev => ({ ...prev, category: { id: parseInt(value) } }));
+    } else if (name === 'warehouseId') {
+      setFormData(prev => ({ ...prev, warehouse: { id: parseInt(value) } }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.productName || !formData.sku || !formData.category.id) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await inventoryApi.saveProduct(formData);
+      if (res.status === 1) {
+        setSaved(true);
+        toast.success("Product registered successfully");
+        setTimeout(() => {
+          onCancel();
+        }, 1500);
+      } else {
+        toast.error(res.message || "Failed to save product");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("An error occurred while saving");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sections = [
     { id: 'basic', label: 'Basic Info', icon: Package },
@@ -48,13 +137,6 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
     { id: 'stock', label: 'Stock & Location', icon: Warehouse },
     { id: 'tax', label: 'Tax & Compliance', icon: Percent },
   ] as const;
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => {
-      onCancel();
-    }, 1200);
-  };
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-100/40 overflow-hidden">
@@ -130,8 +212,8 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
       </div>
 
       {/* Form Content Area with Card Layout */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-        <div className="max-w-6xl mx-auto bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        <div className="w-full bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
           
           {/* === BASIC INFO === */}
           {activeSection === 'basic' && (
@@ -140,40 +222,73 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
                 <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em] border-b border-slate-50 pb-4">Product Identity</p>
 
                 <FormField label="Full Product Name" icon={Package} required>
-                  <input type="text" placeholder="e.g. Solar Panel 450W Mono-Crystalline" className={inputClass} />
+                  <input 
+                    name="productName"
+                    value={formData.productName}
+                    onChange={handleChange}
+                    type="text" 
+                    placeholder="e.g. Solar Panel 450W Mono-Crystalline" 
+                    className={inputClass} 
+                  />
                 </FormField>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField label="SKU / Item Code" icon={Hash} required>
-                    <input type="text" placeholder="e.g. SP-450-MO" className={inputClass} />
+                    <input 
+                      name="sku"
+                      value={formData.sku}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="e.g. SP-450-MO" 
+                      className={inputClass} 
+                    />
                   </FormField>
                   <FormField label="Barcode / EAN" icon={Barcode}>
-                    <input type="text" placeholder="Scan or enter barcode" className={inputClass} />
+                    <input 
+                      name="barcode"
+                      value={formData.barcode}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="Scan or enter barcode" 
+                      className={inputClass} 
+                    />
                   </FormField>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField label="Category" icon={LayoutGrid} required>
                     <div className="relative">
-                      <select className={selectClass}>
+                      <select 
+                        name="categoryId"
+                        value={formData.category.id || ''}
+                        onChange={handleChange}
+                        className={selectClass}
+                      >
                         <option value="">Select Category</option>
-                        <option>Solar Modules</option>
-                        <option>Power Inverters</option>
-                        <option>Energy Storage</option>
-                        <option>Cables & Wiring</option>
-                        <option>Mounting Systems</option>
-                        <option>Accessories</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.categoryName}</option>
+                        ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
                   </FormField>
                   <FormField label="Brand / Manufacturer" icon={Tag}>
-                    <input type="text" placeholder="e.g. Luminous, Waaree" className={inputClass} />
+                    <input 
+                      name="brand"
+                      value={formData.brand}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="e.g. Luminous, Waaree" 
+                      className={inputClass} 
+                    />
                   </FormField>
                 </div>
 
                 <FormField label="Description / Notes" icon={FileText}>
                   <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
                     rows={4}
                     placeholder="Brief product description, warranty notes, or specifications..."
                     className={cn(inputClass, "resize-none leading-relaxed")}
@@ -183,29 +298,41 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField label="Unit of Measure" icon={Weight} required>
                     <div className="relative">
-                      <select className={selectClass}>
-                        <option>PCS (Pieces)</option>
-                        <option>MTR (Meters)</option>
-                        <option>KGS (Kilograms)</option>
-                        <option>LTR (Litres)</option>
+                      <select 
+                        name="unit"
+                        value={formData.unit}
+                        onChange={handleChange}
+                        className={selectClass}
+                      >
+                        <option>PCS</option>
+                        <option>MTR</option>
+                        <option>KGS</option>
+                        <option>LTR</option>
                         <option>BOX</option>
                         <option>SET</option>
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
                   </FormField>
-                  <FormField label="Model Number">
-                    <input type="text" placeholder="Optional model no." className={inputClass} />
+                  <FormField label="HSN Code">
+                    <input 
+                      name="hsnCode"
+                      value={formData.hsnCode}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="e.g. 8541" 
+                      className={inputClass} 
+                    />
                   </FormField>
-                  <FormField label="Item Type">
-                    <div className="relative">
-                      <select className={selectClass}>
-                        <option>Goods</option>
-                        <option>Service</option>
-                        <option>Digital / Software</option>
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    </div>
+                  <FormField label="Low Stock Alert">
+                    <input 
+                      name="lowStockThreshold"
+                      value={formData.lowStockThreshold}
+                      onChange={handleChange}
+                      type="number" 
+                      placeholder="10" 
+                      className={inputClass} 
+                    />
                   </FormField>
                 </div>
               </div>
@@ -231,31 +358,44 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
                   <FormField label="Purchase / Cost Price" icon={IndianRupee} required>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-normal text-sm">₹</span>
-                      <input type="number" min="0" placeholder="0.00" className={cn(inputClass, "pl-8")} />
+                      <input 
+                        name="purchasePrice"
+                        value={formData.purchasePrice}
+                        onChange={handleChange}
+                        type="number" 
+                        min="0" 
+                        placeholder="0.00" 
+                        className={cn(inputClass, "pl-8")} 
+                      />
                     </div>
                   </FormField>
                   <FormField label="Sales / MRP Price" icon={IndianRupee} required>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-normal text-sm">₹</span>
-                      <input type="number" min="0" placeholder="0.00" className={cn(inputClass, "pl-8")} />
+                      <input 
+                        name="sellingPrice"
+                        value={formData.sellingPrice}
+                        onChange={handleChange}
+                        type="number" 
+                        min="0" 
+                        placeholder="0.00" 
+                        className={cn(inputClass, "pl-8")} 
+                      />
                     </div>
                   </FormField>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField label="Wholesale Price">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-normal text-sm">₹</span>
-                      <input type="number" min="0" placeholder="0.00" className={cn(inputClass, "pl-8")} />
-                    </div>
-                  </FormField>
-                  <FormField label="Minimum Selling Price">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-normal text-sm">₹</span>
-                      <input type="number" min="0" placeholder="0.00" className={cn(inputClass, "pl-8")} />
-                    </div>
-                  </FormField>
-                </div>
+                <FormField label="Opening Stock Quantity" icon={Warehouse} required>
+                  <input 
+                    name="stockQuantity"
+                    value={formData.stockQuantity}
+                    onChange={handleChange}
+                    type="number" 
+                    min="0" 
+                    placeholder="0" 
+                    className={inputClass} 
+                  />
+                </FormField>
 
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 flex items-center gap-5">
                   <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0">
@@ -279,7 +419,131 @@ export const AddProductForm = ({ onCancel }: AddProductFormProps) => {
             </div>
           )}
 
-          {/* Additional sections follow the same card pattern... */}
+          {/* === STOCK & LOCATION === */}
+          {activeSection === 'stock' && (
+            <div className="animate-in fade-in duration-300">
+              <div className="p-6 space-y-8">
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em] border-b border-slate-50 pb-4">Storage Intelligence</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField label="Primary Warehouse" icon={Warehouse} required>
+                    <div className="relative">
+                      <select 
+                        name="warehouseId"
+                        value={formData.warehouse.id || ''}
+                        onChange={handleChange}
+                        className={selectClass}
+                      >
+                        <option value="">Select Warehouse</option>
+                        {warehouses.map(wh => (
+                          <option key={wh.id} value={wh.id}>{wh.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormField>
+                  <FormField label="Rack / Bin Location" icon={MapPin}>
+                    <input 
+                      name="rackLocation"
+                      value={formData.rackLocation}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="e.g. R-12/B-04" 
+                      className={inputClass} 
+                    />
+                  </FormField>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 shadow-sm">
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Inventory Safeguards</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Automated alerts will be triggered when stock falls below thresholds.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between p-6 bg-slate-50/50 border-t border-slate-200">
+                <button onClick={() => setActiveSection('pricing')} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[11px] font-medium uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
+                  <ChevronDown className="w-4 h-4 rotate-90" /> Back
+                </button>
+                <button onClick={() => setActiveSection('tax')} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-medium uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-900/10">
+                  Next: Compliance <ChevronDown className="w-4 h-4 -rotate-90" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* === TAX & COMPLIANCE === */}
+          {activeSection === 'tax' && (
+            <div className="animate-in fade-in duration-300">
+              <div className="p-6 space-y-8">
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em] border-b border-slate-50 pb-4">GST & Regulatory</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField label="GST Rate (%)" icon={Percent} required>
+                    <div className="relative">
+                      <select 
+                        name="gstRate"
+                        value={formData.gstRate}
+                        onChange={handleChange}
+                        className={selectClass}
+                      >
+                        <option value={0}>0% (Exempt)</option>
+                        <option value={5}>5% (Essentials)</option>
+                        <option value={12}>12% (Standard)</option>
+                        <option value={18}>18% (Standard High)</option>
+                        <option value={28}>28% (Luxury/Demerit)</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormField>
+                  <FormField label="Tax Implementation" required>
+                    <div className="flex p-1 bg-slate-100 rounded-xl gap-1">
+                      {['EXCLUSIVE', 'INCLUSIVE'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setFormData(prev => ({ ...prev, taxType: type }))}
+                          className={cn(
+                            "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all",
+                            formData.taxType === type 
+                              ? "bg-white text-slate-900 shadow-sm"
+                              : "text-slate-400 hover:text-slate-600"
+                          )}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </FormField>
+                </div>
+
+                <div className="p-6 rounded-2xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center">
+                   <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+                      <FileText className="w-6 h-6 text-slate-300" />
+                   </div>
+                   <p className="text-xs font-bold text-slate-900 uppercase">Compliance Verification</p>
+                   <p className="text-[10px] text-slate-400 mt-1 max-w-[280px]">Ensure HSN codes and GST rates align with official departmental guidelines.</p>
+                </div>
+              </div>
+
+              <div className="flex justify-between p-6 bg-slate-50/50 border-t border-slate-200">
+                <button onClick={() => setActiveSection('stock')} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[11px] font-medium uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
+                  <ChevronDown className="w-4 h-4 rotate-90" /> Back
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-10 py-3 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
+                >
+                  Finalize & Register Asset
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

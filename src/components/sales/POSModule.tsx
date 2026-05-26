@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, 
   Search, 
@@ -13,35 +13,60 @@ import {
   Package,
   TrendingUp,
   X,
-  Layers
+  Layers,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
+import { inventoryApi } from '@/src/lib/api';
+import { toast } from 'sonner';
 
 interface CartItem {
-  id: string;
+  id: string; // Internal unique ID for cart
+  productId: number;
   name: string;
   price: number;
   cost: number;
   qty: number;
   margin: number;
   marginType: 'percentage' | 'amount';
+  unit: string;
 }
 
-const products = [
-  { id: '1', name: 'Solar Panel 450W', price: 12500, cost: 10500, category: 'Panels' },
-  { id: '2', name: 'Lithium Battery 100Ah', price: 35000, cost: 28000, category: 'Storage' },
-  { id: '3', name: 'Hybrid Inverter 5kVA', price: 42000, cost: 36000, category: 'Electronics' },
-  { id: '4', name: 'MC4 Connector', price: 150, cost: 80, category: 'Accessories' },
-  { id: '5', name: 'DC Wire 4sqmm', price: 45, cost: 30, category: 'Accessories' },
-  { id: '6', name: 'Roof Mount Kit', price: 2500, cost: 1800, category: 'Structure' },
-  { id: '7', name: 'Earthing Rod', price: 1200, cost: 800, category: 'Accessories' },
-  { id: '8', name: 'ACDB 1-In 1-Out', price: 4500, cost: 3200, category: 'Electronics' },
-];
-
 export const POSModule = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showMargin, setShowMargin] = useState(false);
   const [ledgerAccount, setLedgerAccount] = useState('pos_cash');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getAllProducts();
+      if (res.status === 1) {
+        setProducts(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching products", error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredProducts = useMemo(() => 
+    products.filter(p => 
+      p.productName.toLowerCase().includes(search.toLowerCase()) || 
+      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
+    ), [search, products]);
 
   const ledgerAccounts = [
     { id: 'pos_cash', name: 'POS Cash Counter', type: 'Cash' },
@@ -50,16 +75,23 @@ export const POSModule = () => {
   ];
 
   const addToCart = (product: any) => {
-    const existing = cart.find(item => item.id === product.id);
+    const existing = cart.find(item => item.productId === product.id);
     if (existing) {
-      setCart(cart.map(item => item.id === product.id ? {...item, qty: item.qty + 1} : item));
+      setCart(cart.map(item => item.productId === product.id ? {...item, qty: item.qty + 1} : item));
     } else {
-      const margin = ((product.price - product.cost) / product.cost) * 100;
+      const price = product.sellingPrice || 0;
+      const cost = product.purchasePrice || 0;
+      const margin = cost > 0 ? ((price - cost) / cost) * 100 : 0;
       setCart([...cart, {
-        ...product, 
-        qty: 1, 
-        margin: Number(margin.toFixed(2)), 
-        marginType: 'percentage' 
+        id: Math.random().toString(36).substr(2, 9),
+        productId: product.id,
+        name: product.productName,
+        price,
+        cost,
+        qty: 1,
+        margin: Number(margin.toFixed(2)),
+        marginType: 'percentage',
+        unit: product.unit || 'PCS'
       }]);
     }
   };
@@ -77,9 +109,10 @@ export const POSModule = () => {
   const updatePrice = (id: string, newPrice: number) => {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
+        const cost = item.cost || 1;
         const margin = item.marginType === 'percentage'
-          ? ((newPrice / item.cost) - 1) * 100
-          : newPrice - item.cost;
+          ? ((newPrice / cost) - 1) * 100
+          : newPrice - cost;
         return { ...item, price: newPrice, margin: Number(margin.toFixed(2)) };
       }
       return item;
@@ -103,7 +136,53 @@ export const POSModule = () => {
     setCart(cart.filter(item => item.id !== id));
   };
 
-  const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+  const gst = subtotal * 0.18;
+  const total = subtotal + gst;
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      const payload = {
+        customerName: "Walk-in Customer",
+        customerPhone: "0000000000",
+        items: cart.map(item => ({
+          product: { id: item.productId },
+          quantity: item.qty,
+          unitPrice: item.price,
+          totalPrice: item.price * item.qty
+        })),
+        totalAmount: total,
+        paymentStatus: 'PAID',
+        paymentMethod: paymentMethod,
+        isPos: true
+      };
+
+      const res = await inventoryApi.saveSale(payload);
+      
+      if (res.status === 1) {
+        toast.success('TRANSACTION SUCCESSFUL', {
+          description: `Invoice: #${res.data?.id}`,
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        });
+        setCart([]);
+        fetchProducts(); // Refresh stock
+      } else {
+        toast.error(res.message || "Checkout failed");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("An error occurred during checkout");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col md:flex-row bg-[#F8FAFC] overflow-hidden h-full text-slate-800">
@@ -113,17 +192,28 @@ export const POSModule = () => {
          <div className="p-3 border-b border-slate-100 bg-white flex items-center gap-3 shrink-0">
             <div className="flex-1 relative">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-               <input type="text" placeholder="Scan barcode or search..." className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[11px] font-semibold outline-none focus:border-primary/20" />
-            </div>
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-               {['All', 'Panels', 'Electronics', 'Storage'].map(cat => (
-                  <button key={cat} className="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest bg-slate-50 text-slate-500 hover:bg-primary/5 hover:text-primary transition-all whitespace-nowrap">{cat}</button>
-               ))}
+               <input 
+                 type="text" 
+                 placeholder="Search assets..." 
+                 className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[11px] font-semibold outline-none focus:border-primary/20" 
+                 value={search}
+                 onChange={e => setSearch(e.target.value)}
+               />
             </div>
          </div>
 
           <div className="flex-1 p-3 overflow-y-auto grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 custom-scrollbar content-start">
-            {products.map(p => (
+            {loading ? (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center opacity-30">
+                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                <p className="text-[8px] font-black uppercase tracking-widest">Loading Catalog...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center opacity-30">
+                <Package className="w-8 h-8 mb-2" />
+                <p className="text-[8px] font-black uppercase tracking-widest">No Products Found</p>
+              </div>
+            ) : filteredProducts.map(p => (
                <button 
                  key={p.id} 
                  onClick={() => addToCart(p)}
@@ -133,14 +223,14 @@ export const POSModule = () => {
                     <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
                        <Package className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[7px] font-black uppercase text-slate-300 group-hover:text-primary/40">Stock</span>
+                    <span className="text-[7px] font-black uppercase text-slate-400">{p.stockQuantity} in stock</span>
                   </div>
                   <div>
-                     <h4 className="text-[10px] font-black text-slate-800 uppercase leading-tight line-clamp-1">{p.name}</h4>
+                     <h4 className="text-[10px] font-black text-slate-800 uppercase leading-tight line-clamp-1">{p.productName}</h4>
                      <div className="flex items-center justify-between mt-1.5">
-                        <p className="text-xs font-black text-primary italic">₹{p.price.toLocaleString()}</p>
+                        <p className="text-xs font-black text-primary italic">₹{p.sellingPrice?.toLocaleString()}</p>
                         <div className="w-4 h-4 rounded-full bg-primary/5 flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all">
-                          <Plus className="w-2.5 h-2.5" />
+                           <Plus className="w-2.5 h-2.5" />
                         </div>
                      </div>
                   </div>
@@ -160,19 +250,19 @@ export const POSModule = () => {
 
          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 custom-scrollbar bg-slate-50/20">
             {cart.length === 0 ? (
-               <div className="h-full flex flex-col items-center justify-center text-center opacity-10">
+               <div className="h-full flex flex-col items-center justify-center text-center opacity-10 py-10">
                   <ShoppingCart className="w-8 h-8 mb-2" />
-                  <p className="text-[8px] font-black uppercase tracking-widest">Empty</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest">Cart is Empty</p>
                </div>
             ) : (
                cart.map(item => {
-                 const marginPct = ((item.price - item.cost) / item.cost) * 100;
+                 const marginPct = item.cost > 0 ? ((item.price - item.cost) / item.cost) * 100 : 0;
                  return (
                   <div key={item.id} className="bg-white p-2.5 border border-slate-100 rounded-lg shadow-sm hover:border-slate-200 transition-all">
                      <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                            <h5 className="text-[10px] font-black text-slate-800 uppercase truncate leading-[1]">{item.name}</h5>
-                           <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tight">Cost: ₹{item.cost.toLocaleString()}</p>
+                           <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tight">Cost: ₹{item.cost?.toLocaleString()}</p>
                         </div>
                         <button onClick={() => removeFromCart(item.id)} className="text-slate-200 hover:text-red-500 transition-colors">
                            <Trash2 className="w-3 h-3" />
@@ -261,35 +351,57 @@ export const POSModule = () => {
             <div className="space-y-1 text-right">
                <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-widest px-1">
                   <span>Subtotal</span>
-                  <span className="font-black text-slate-600">₹{total.toLocaleString()}</span>
+                  <span className="font-black text-slate-600">₹{subtotal.toLocaleString()}</span>
                </div>
                <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-widest px-1">
                   <span>GST (18%)</span>
-                  <span className="font-black text-slate-600">₹{(total * 0.18).toLocaleString()}</span>
+                  <span className="font-black text-slate-600">₹{gst.toLocaleString()}</span>
                </div>
                <div className="flex justify-between items-center pt-2 mt-1 border-t border-slate-100">
                   <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Total Bill</span>
-                  <span className="text-xl font-black text-primary italic tracking-tighter">₹{(total * 1.18).toLocaleString()}</span>
+                  <span className="text-xl font-black text-primary italic tracking-tighter">₹{total.toLocaleString()}</span>
                </div>
             </div>
 
             <div className="grid grid-cols-3 gap-1.5">
-               <button className="flex flex-col items-center gap-1 p-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all text-slate-400 hover:text-primary group">
-                  <Banknote className="w-3.5 h-3.5 transition-transform group-active:scale-95" />
+               <button 
+                 onClick={() => setPaymentMethod('CASH')}
+                 className={cn(
+                   "flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all",
+                   paymentMethod === 'CASH' ? "bg-primary/5 border-primary/20 text-primary" : "bg-slate-50 border-slate-100 text-slate-400"
+                 )}
+               >
+                  <Banknote className="w-3.5 h-3.5" />
                   <span className="text-[7px] font-black uppercase">Cash</span>
                </button>
-               <button className="flex flex-col items-center gap-1 p-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all text-slate-400 hover:text-primary group">
-                  <Smartphone className="w-3.5 h-3.5 transition-transform group-active:scale-95" />
+               <button 
+                 onClick={() => setPaymentMethod('UPI')}
+                 className={cn(
+                   "flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all",
+                   paymentMethod === 'UPI' ? "bg-primary/5 border-primary/20 text-primary" : "bg-slate-50 border-slate-100 text-slate-400"
+                 )}
+               >
+                  <Smartphone className="w-3.5 h-3.5" />
                   <span className="text-[7px] font-black uppercase">UPI</span>
                </button>
-               <button className="flex flex-col items-center gap-1 p-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all text-slate-400 hover:text-primary group">
-                  <CreditCard className="w-3.5 h-3.5 transition-transform group-active:scale-95" />
+               <button 
+                 onClick={() => setPaymentMethod('CARD')}
+                 className={cn(
+                   "flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all",
+                   paymentMethod === 'CARD' ? "bg-primary/5 border-primary/20 text-primary" : "bg-slate-50 border-slate-100 text-slate-400"
+                 )}
+               >
+                  <CreditCard className="w-3.5 h-3.5" />
                   <span className="text-[7px] font-black uppercase">Card</span>
                </button>
             </div>
 
-            <button className="w-full py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-2">
-               <Zap className="w-3.5 h-3.5 text-white fill-white" /> Complete
+            <button 
+              onClick={handleCheckout}
+              disabled={isProcessing || cart.length === 0}
+              className="w-full py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-xl hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+               {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Zap className="w-3.5 h-3.5 text-white fill-white" /> Complete</>}
             </button>
          </div>
       </div>

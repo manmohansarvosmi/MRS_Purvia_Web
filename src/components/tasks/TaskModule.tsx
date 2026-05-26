@@ -11,7 +11,7 @@ import {
   User,
   Tag
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 const tasks = [
   { id: '1', title: 'Verify Inventory at Pune Hub', priority: 'High', due: 'Today', status: 'In Progress', owner: 'Rajesh K.' },
