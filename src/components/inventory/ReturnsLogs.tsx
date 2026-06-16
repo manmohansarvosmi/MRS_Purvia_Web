@@ -1,26 +1,8 @@
 import React from 'react';
 import { 
-  RotateCcw, 
-  RefreshCw, 
-  Search, 
-  Eye, 
-  Clock,
-  CheckCircle2,
-  AlertCircle
+  RotateCcw, RefreshCw, Search, Eye, Download, Filter, Plus, AlertCircle, Loader2
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/src/lib/utils";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 
 const mockReturnData = [
   { id: 'RET-001', inv: 'INV-992', product: 'Solar Inverter 5KV', date: '2026-04-20', reason: 'Defective Power Board', status: 'In Review', type: 'Replacement' },
@@ -30,121 +12,90 @@ const mockReturnData = [
 
 export const ReturnsLogs = () => {
   return (
-    <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8 custom-scrollbar">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in" style={{ background: '#fff' }}>
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0">
         <div>
-          <h2 className="text-xl font-normal text-slate-900 tracking-tight uppercase flex items-center gap-3">
-            <RotateCcw className="w-5 h-5 text-primary" />
-            Reversal Logs
-          </h2>
-          <p className="text-[10px] font-normal text-slate-400 uppercase tracking-widest mt-1">Asset Returns & Replacement Tracking</p>
+          <h2>Reverse Logistics</h2>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>Asset Returns & Replacement Registry</p>
         </div>
-        <Button className="bg-primary hover:bg-[#900015] text-white font-normal uppercase tracking-widest h-11 px-6 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-95">
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Log New Return
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="rounded-xl border border-slate-200 shadow-sm bg-white group hover:shadow-md transition-all overflow-hidden relative">
-          <CardContent className="p-6">
-            <p className="text-[10px] font-normal uppercase tracking-widest text-slate-400 mb-3">Pending Replacement Matrix</p>
-            <div className="flex items-center justify-between">
-              <h3 className="text-3xl font-normal text-slate-900">04</h3>
-              <RefreshCw className="w-8 h-8 text-primary opacity-20" />
-            </div>
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-normal text-primary uppercase">
-               <Clock className="w-3.5 h-3.5" />
-               Awaiting triage completion
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="rounded-xl border border-slate-200 shadow-sm bg-white group hover:shadow-md transition-all overflow-hidden relative">
-          <CardContent className="p-6">
-            <p className="text-[10px] font-normal uppercase tracking-widest text-slate-400 mb-3">Cycle Aggregate (MTD)</p>
-            <div className="flex items-center justify-between">
-              <h3 className="text-3xl font-normal text-slate-900">12</h3>
-              <RotateCcw className="w-8 h-8 text-primary opacity-20" />
-            </div>
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-normal text-emerald-600 uppercase">
-               <CheckCircle2 className="w-3.5 h-3.5" />
-               Current month reverse logistics
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:flex gap-4">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-          <Input placeholder="Search request ID, invoice or item..." className="pl-10 h-11 bg-white border-slate-200 shadow-sm rounded-lg focus-visible:ring-primary/20" />
+        <div className="flex items-center gap-2">
+          <div className="search-bar">
+            <Search />
+            <input placeholder="Search return logs..." style={{ width: 220 }} />
+          </div>
+          <button className="btn-secondary"><Filter size={12} /> Filter</button>
+          <button className="btn-secondary"><Download size={12} /> export</button>
+          <button className="btn-primary">
+            <Plus size={13} /> Log New Return
+          </button>
         </div>
-        <Button variant="outline" className="h-11 px-5 rounded-lg border-slate-200 bg-white font-normal uppercase text-[10px] text-slate-500 hover:text-primary transition-all">
-          <Clock className="w-4 h-4 mr-2" />
-          Temporal Filter
-        </Button>
       </div>
 
-      <Card className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
-        <Table>
-          <TableHeader className="bg-slate-100/40">
-            <TableRow className="hover:bg-transparent border-b border-slate-200">
-              <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-400 tracking-widest">Request SID</TableHead>
-              <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-400 tracking-widest">Asset Origin</TableHead>
-              <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-400 tracking-widest">Protocol Type</TableHead>
-              <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-400 tracking-widest">Deviation Reason</TableHead>
-              <TableHead className="h-12 px-6 text-[10px] font-normal uppercase text-slate-400 tracking-widest">Status Node</TableHead>
-              <TableHead className="h-12 px-6 text-right text-[10px] font-normal uppercase text-slate-400 tracking-widest">Ops</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-             {mockReturnData.map((ret) => (
-               <TableRow key={ret.id} className="group hover:bg-slate-100/40 border-b border-slate-50/50 transition-all">
-                 <TableCell className="px-6 py-4 font-mono font-normal text-slate-400 text-xs">[{ret.id}]</TableCell>
-                 <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200">
-                        <AlertCircle className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-normal text-slate-900">{ret.product}</p>
-                        <p className="text-[10px] font-normal text-primary uppercase tracking-tight">{ret.inv}</p>
-                      </div>
+      {/* ── Stats Bar ── */}
+      <div className="flex items-center gap-10 px-5 py-3 shrink-0" style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+        <div>
+          <p className="erp-label !mb-1">Pending RMA</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#C8102E' }}>04 Requests</p>
+        </div>
+        <div>
+          <p className="erp-label !mb-1">Completed Cycles</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>12 Records</p>
+        </div>
+      </div>
+
+      {/* ── Data Grid ── */}
+      <div className="flex-1 overflow-auto">
+        <table className="erp-table">
+          <thead>
+            <tr>
+              <th style={{ width: 100 }}>Request ID</th>
+              <th>Asset Origin Details</th>
+              <th style={{ width: 140 }}>Protocol Type</th>
+              <th>Deviation Narrative</th>
+              <th style={{ width: 120, textAlign: 'center' }}>Workflow Status</th>
+              <th style={{ width: 50, textAlign: 'center' }}>Ops</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mockReturnData.map((ret) => (
+              <tr key={ret.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#111827', fontWeight: 600 }}>{ret.id}</td>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 bg-slate-100 rounded flex items-center justify-center text-slate-400">
+                      <AlertCircle size={14} />
                     </div>
-                 </TableCell>
-                 <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "w-6 h-6 rounded flex items-center justify-center shadow-sm",
-                        ret.type === 'Replacement' ? "bg-indigo-50 text-indigo-600" : "bg-amber-50 text-amber-600"
-                      )}>
-                        {ret.type === 'Replacement' ? <RefreshCw className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
-                      </div>
-                      <span className="text-[10px] font-normal uppercase text-slate-600 tracking-widest">{ret.type}</span>
+                    <div>
+                      <p style={{ fontWeight: 600, color: '#111827', fontSize: 12 }}>{ret.product}</p>
+                      <p style={{ fontSize: 10, color: '#C8102E', fontWeight: 500 }}>INV: {ret.inv}</p>
                     </div>
-                 </TableCell>
-                 <TableCell className="px-6 py-4">
-                   <p className="text-xs font-medium text-slate-400 max-w-[180px] break-words">{ret.reason}</p>
-                 </TableCell>
-                 <TableCell className="px-6 py-4">
-                    <Badge variant="outline" className={cn(
-                      "rounded-lg px-2.5 py-0.5 text-[9px] font-normal uppercase border",
-                      ret.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-primary/5 text-primary border-primary/10'
-                    )}>
+                  </div>
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <RefreshCw size={12} className={cn(ret.type === 'Replacement' ? "text-blue-500" : "text-amber-500")} />
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#4B5563' }}>{ret.type}</span>
+                  </div>
+                </td>
+                <td style={{ fontSize: 11, color: '#64748B', maxWidth: 200 }}>
+                  {ret.reason}
+                </td>
+                <td>
+                   <span className={cn("badge", ret.status === 'Completed' ? "badge-success" : "badge-neutral")} style={{ width: '100%', justifyContent: 'center' }}>
                       {ret.status}
-                    </Badge>
-                 </TableCell>
-                 <TableCell className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-white hover:text-primary transition-all border border-transparent hover:border-slate-200">
-                      <Eye className="w-3.5 h-3.5" />
-                    </Button>
-                 </TableCell>
-               </TableRow>
-             ))}
-          </TableBody>
-        </Table>
-      </Card>
+                   </span>
+                </td>
+                <td style={{ textAlign: 'center' }}>
+                  <button className="btn-ghost"><Eye size={13} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 };

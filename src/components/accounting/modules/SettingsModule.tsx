@@ -1,162 +1,278 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings as SettingsIcon, 
   User, 
   Shield, 
-  Lock, 
-  Bell, 
-  Globe, 
   CreditCard, 
-  Database, 
+  Building2, 
   ChevronRight, 
   Save, 
-  RefreshCw,
-  Building2,
-  FileText,
   Smartphone,
   Mail,
-  MoreVertical,
-  Plus
+  Fingerprint,
+  MapPin,
+  Globe,
+  Camera,
+  AlertTriangle,
+  ChevronLeft,
+  Bell,
+  Lock,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
+import { Button } from "@/components/ui/button";
+import { settingsApi } from '@/src/lib/api';
+import { toast } from 'sonner';
 
 const settingSections = [
-  { id: 'profile', label: 'Identity & Access', icon: User, desc: 'Manage personal details and credentials' },
-  { id: 'business', label: 'Organization Profile', icon: Building2, desc: 'GSTIN, Branding, and Legal configurations' },
-  { id: 'security', label: 'Security & Shields', icon: Shield, desc: '2FA, Audit logs, and IP restrictions' },
-  { id: 'finance', label: 'Financial Controls', icon: CreditCard, desc: 'Currency defaults, Tax rates, and Ledger rules' },
-  { id: 'notification', label: 'Alert Preferences', icon: Bell, desc: 'Webhook, Email, and Push configurations' },
-  { id: 'backup', label: 'Data & Infinity', icon: Database, desc: 'Cloud backups, Export, and History purging' },
+  { id: 'profile', label: 'Identity & Access', icon: User, desc: 'Personal details & security' },
+  { id: 'business', label: 'Organization Profile', icon: Building2, desc: 'Legal name, GST & Presence' },
+  { id: 'security', label: 'Security & Shields', icon: Shield, desc: 'MFA & Audit protection' },
+  { id: 'finance', label: 'Financial Controls', icon: CreditCard, desc: 'Currency & Ledger rules' },
 ];
 
 export const SettingsModule = () => {
+  const [activeSubTab, setActiveSubTab] = useState('business');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formData, setFormData] = useState<any>({
+    organizationName: '',
+    gstin: '',
+    directorName: '',
+    contactNumber: '',
+    address: '',
+    email: '',
+    timezone: 'Asia/Kolkata (GMT+5:30)'
+  });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await settingsApi.getOrganization();
+      if (res.code === 1 && res.data) {
+        setFormData(res.data);
+        if (res.data.logo) {
+          setLogoPreview(`data:image/jpeg;base64,${res.data.logo}`);
+        }
+      }
+    } catch (e) {
+      toast.error("Failed to load organization profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading("Updating System Parameters...");
+    try {
+      const res = await settingsApi.updateOrganization(formData, logoFile || undefined);
+      if (res.code === 1) {
+        toast.success("Profile Synchronized Successfully", { id: toastId });
+        if (res.data?.logo) {
+           setLogoPreview(`data:image/jpeg;base64,${res.data.logo}`);
+        }
+      } else {
+        toast.error(res.message || "Failed to update profile", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("System Error: Update Interrupted", { id: toastId });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-primary w-8 h-8 mb-4" />
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Accessing Control Center...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500 pb-20">
-      {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-           <div className="w-16 h-16 bg-slate-100 rounded-[1.75rem] flex items-center justify-center border-2 border-slate-900 shadow-xl">
-              <SettingsIcon className="w-8 h-8 text-slate-900 animate-spin-slow" />
-           </div>
-           <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic">Control Center</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Configure your business logic & intelligence parameters</p>
-           </div>
-        </div>
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in bg-[#F8FAFC]">
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0 shadow-sm z-10">
         <div className="flex items-center gap-3">
-           <button className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2 hover:bg-black transition-all">
-             <Save className="w-4 h-4 text-primary" /> Commit All Changes
-           </button>
+          <div className="w-8 h-8 bg-slate-900 rounded-[5px] flex items-center justify-center text-white">
+            <SettingsIcon size={16} />
+          </div>
+          <div className="h-6 w-[1px] bg-slate-200 mx-1" />
+          <div>
+            <h2 className="text-[11px] font-bold text-slate-900 tracking-tight uppercase">System Control Center</h2>
+            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mt-0.5">Enterprise Configuration Manager</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            className="btn-primary h-8 px-5 text-[10px] shadow-sm uppercase font-bold tracking-widest flex items-center gap-2" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            Commit changes
+          </button>
         </div>
       </div>
 
-      {/* ── Layout ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+      <div className="flex-1 flex overflow-hidden min-h-0">
          
-         {/* Navigation Sidebar */}
-         <div className="space-y-3">
-            {settingSections.map((sec) => (
-               <button key={sec.id} className={cn(
-                  "w-full p-6 bg-white rounded-[2rem] border transition-all flex items-center gap-5 group text-left",
-                  sec.id === 'profile' ? "border-primary shadow-xl ring-4 ring-primary/5" : "border-slate-50 hover:border-slate-200 shadow-sm"
-               )}>
-                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm",
-                    sec.id === 'profile' ? "bg-primary text-white" : "bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white"
-                  )}>
-                     <sec.icon className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                     <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{sec.label}</h4>
-                     <p className="text-[9px] font-bold text-slate-400 uppercase italic mt-0.5">{sec.desc}</p>
-                  </div>
-                  <ChevronRight className={cn("w-4 h-4 transition-transform group-hover:translate-x-1", sec.id === 'profile' ? "text-primary" : "text-slate-200")} />
-               </button>
-            ))}
+         <div className="w-[240px] bg-white border-r border-slate-200 flex flex-col p-3 overflow-y-auto no-scrollbar shrink-0">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2 mb-3">Nodes</p>
+            <div className="space-y-1">
+              {settingSections.map((sec) => (
+                 <button 
+                  key={sec.id} 
+                  onClick={() => setActiveSubTab(sec.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] transition-all text-left",
+                    activeSubTab === sec.id ? "bg-primary/5 text-primary" : "text-slate-600 hover:bg-slate-50"
+                  )}
+                 >
+                    <sec.icon size={14} className={activeSubTab === sec.id ? "text-primary" : "text-slate-400"} />
+                    <div className="flex-1 min-w-0">
+                       <h4 className="text-[10px] font-bold uppercase truncate">{sec.label}</h4>
+                    </div>
+                 </button>
+              ))}
+            </div>
          </div>
 
-         {/* Content Area */}
-         <div className="xl:col-span-2 space-y-8">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl p-12 space-y-12">
+         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="max-w-4xl space-y-6">
                
-               {/* Section: Profile */}
-               <section className="space-y-8">
-                  <div className="flex items-center justify-between border-b border-slate-50 pb-8">
-                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] italic">Profile Configuration</h3>
-                     <button className="text-[9px] font-black text-primary uppercase underline">Edit Avatar</button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
-                        <input type="text" defaultValue="Manmohan Sarvosmi" className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-5 text-xs font-black text-slate-800 outline-none focus:border-primary transition-all" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email Address</label>
-                        <input type="email" defaultValue="manmohan@helixion.in" className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-5 text-xs font-black text-slate-800 outline-none focus:border-primary transition-all" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
-                        <input type="text" defaultValue="Principal Director" className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-5 text-xs font-black text-slate-800 outline-none focus:border-primary transition-all" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Timezone / Locale</label>
-                        <select className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-5 text-xs font-black text-slate-800 outline-none appearance-none">
-                           <option>Asia/Kolkata (GMT+5:30)</option>
-                           <option>America/New_York (GMT-5:00)</option>
-                        </select>
-                     </div>
-                  </div>
-               </section>
+               {activeSubTab === 'business' ? (
+                 <div className="bg-white border border-slate-200 rounded-[5px] shadow-sm overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                          <Building2 size={12} className="text-slate-400" />
+                          <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Organization Credentials</h3>
+                       </div>
+                    </div>
+                    <div className="p-6 space-y-6">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                             <label className="erp-label">Legal Organization Name</label>
+                             <input type="text" name="organizationName" value={formData.organizationName} onChange={handleInputChange} className="erp-input h-9 font-bold text-slate-800 uppercase" />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="erp-label">GSTIN / Tax ID</label>
+                             <input type="text" name="gstin" value={formData.gstin} onChange={handleInputChange} className="erp-input h-9 font-mono !text-primary uppercase" />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="erp-label">Principal Director / Authority</label>
+                             <input type="text" name="directorName" value={formData.directorName} onChange={handleInputChange} className="erp-input h-9 font-bold text-slate-800 uppercase" />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="erp-label">Support / Contact Helplne</label>
+                             <input type="text" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} className="erp-input h-9 font-bold text-slate-800 uppercase" />
+                          </div>
+                          <div className="md:col-span-2 space-y-1.5">
+                             <label className="erp-label">Registered Office Address</label>
+                             <textarea name="address" value={formData.address} onChange={handleInputChange} className="erp-input !h-20 py-2 font-bold text-slate-800 uppercase resize-none" />
+                          </div>
+                       </div>
+                       
+                       <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                             <div 
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-14 h-14 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[5px] flex items-center justify-center text-slate-300 group cursor-pointer hover:border-primary/50 transition-all overflow-hidden"
+                             >
+                                {logoPreview ? (
+                                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                                ) : (
+                                  <Camera size={20} />
+                                )}
+                                <input type="file" ref={fileInputRef} onChange={handleLogoChange} className="hidden" accept="image/*" />
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-bold text-slate-700 uppercase">Organization Logo</p>
+                                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-wider">Stored as BLOB in Database</p>
+                             </div>
+                          </div>
+                          <button onClick={() => fileInputRef.current?.click()} className="btn-secondary h-7 px-4 text-[9px]">Replace Logo</button>
+                       </div>
+                    </div>
+                 </div>
+               ) : activeSubTab === 'profile' ? (
+                 <div className="bg-white border border-slate-200 rounded-[5px] shadow-sm overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                       <User size={12} className="text-slate-400" />
+                       <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Admin Identity</h3>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="space-y-1.5">
+                          <label className="erp-label">Work Email</label>
+                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="erp-input h-9 font-bold text-slate-800" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="erp-label">System Timezone</label>
+                          <select name="timezone" value={formData.timezone} onChange={handleInputChange} className="erp-select h-9 font-bold text-slate-800 uppercase">
+                             <option>Asia/Kolkata (GMT+5:30)</option>
+                             <option>UTC (Neutral Time)</option>
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+               ) : (
+                  <div className="bg-white border border-slate-200 rounded-[5px] shadow-sm p-20 flex flex-col items-center justify-center text-slate-300 italic">
+                    <SettingsIcon size={32} className="mb-3 opacity-20" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Section content synchronizing...</p>
+                 </div>
+               )}
 
-               {/* Section: Organization */}
-               <section className="space-y-8 pt-4">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] italic border-b border-slate-50 pb-8">Organization Credentials</h3>
-                  <div className="space-y-6">
-                     <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <div className="flex items-center gap-5">
-                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                              <Shield className="w-6 h-6 text-emerald-500" />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">GSTIN Authentication</p>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase italic mt-0.5">09AAACH1234F1Z5 • VERIFIED</p>
-                           </div>
-                        </div>
-                        <button className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-all shadow-sm">Update Cert</button>
-                     </div>
-                     <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <div className="flex items-center gap-5">
-                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                              <Smartphone className="w-6 h-6 text-blue-500" />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">Multi-Factor Auth (MFA)</p>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase italic mt-0.5">ENABLED • PROTECTING YOUR CREDENTIALS</p>
-                           </div>
-                        </div>
-                        <div className="w-12 h-6 bg-primary rounded-full relative p-1 cursor-pointer">
-                           <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
-                        </div>
+               <div className="bg-white border border-red-100 rounded-[5px] overflow-hidden shadow-sm">
+                  <div className="px-4 py-2 bg-red-50/50 border-b border-red-100 flex items-center gap-2">
+                     <AlertTriangle size={12} className="text-red-500" />
+                     <h3 className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Sensitive Master Controls</h3>
+                  </div>
+                  <div className="p-4 space-y-4">
+                     <p className="text-[9px] font-medium text-slate-500 leading-relaxed italic border-l-2 border-red-200 pl-3">Purging auditing records or resetting environment logs will delete all historical telemetry forever. Authorized Principal Authority clearance required.</p>
+                     <div className="flex gap-2">
+                        <button className="btn-secondary border-red-100 text-red-500 hover:bg-red-600 hover:text-white h-7 px-4 text-[9px]">Reset Journals</button>
+                        <button className="btn-secondary border-red-100 text-red-500 hover:bg-red-600 hover:text-white h-7 px-4 text-[9px]">Purge Audit Logs</button>
                      </div>
                   </div>
-               </section>
-
-               {/* Section: Danger Zone */}
-               <section className="pt-8 space-y-6">
-                  <div className="p-8 bg-rose-50 rounded-[2.5rem] border border-rose-100">
-                     <h4 className="text-[11px] font-black text-rose-600 uppercase tracking-[0.2em] mb-3 italic">Danger Zone</h4>
-                     <p className="text-[10px] text-rose-500/80 uppercase font-black tracking-widest leading-relaxed">Hard-deleting assets or purging financial history is irreversible. Exercise extreme caution before proceeding.</p>
-                     <div className="mt-8 flex flex-wrap gap-4">
-                        <button className="px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm">Deactivate Workspace</button>
-                        <button className="px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm">Purge Audit Logs</button>
-                     </div>
-                  </div>
-               </section>
+               </div>
 
             </div>
          </div>
 
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+      `}} />
     </div>
   );
 };

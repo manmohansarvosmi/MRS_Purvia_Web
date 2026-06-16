@@ -1,29 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  Plus,
-  Trash2,
-  Printer,
-  Save,
-  Send,
-  Building2,
-  User,
-  MapPin,
-  Calendar,
-  CreditCard,
-  FileText,
-  TrendingUp,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  CheckCircle2,
-  Search,
-  X,
-  ChevronDown,
-  Layers,
-  Loader2
+  Plus, Printer, Save, User, CreditCard, Search, X,
+  Loader2, ShieldCheck, Layers, Send, TrendingUp, FileText
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
-import { inventoryApi, salesApi, accountingApi } from '@/src/lib/api';
+import { inventoryApi, salesApi, accountsApi } from '@/src/lib/api';
 import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -34,7 +15,7 @@ export interface InvoiceItem {
   hsn: string;
   qty: number;
   unit: string;
-  rate: number;           // selling rate (excl. GST)
+  rate: number;
   discount: number;
   taxRate: number;
   costPrice?: number;
@@ -45,73 +26,63 @@ export interface InvoiceItem {
 
 export interface EstimateSource {
   id?: number;
-  estimateNumber?: string;
   customerName: string;
-  customerGstin?: string;
-  customerAddress?: string;
+  customerMobile: string;
+  billingAddress?: string;
   items: any[];
 }
 
 interface GSTInvoiceFormProps {
-  fromEstimate?: EstimateSource;   // pre-fill when converting estimate → invoice
   onSuccess?: () => void;
   isQuotation?: boolean;
+  fromEstimate?: EstimateSource;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
-const calcSubtotal = (item: InvoiceItem) => {
-  const gross = item.qty * item.rate;
-  return gross - gross * (item.discount / 100);
-};
+const calcSubtotal = (item: InvoiceItem) => item.qty * item.rate;
 
-const inputCls = "w-full px-3 py-2 bg-white border border-slate-200 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all";
-const tdCls   = "px-5 py-3 border-b border-slate-100 align-top text-sm text-slate-700";
-const thCls   = "px-5 py-3 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 bg-slate-50 border-b border-slate-200 whitespace-nowrap text-left";
-
-// ── Component ─────────────────────────────────────────────────────────
-export const GSTInvoiceForm = ({ fromEstimate, onSuccess, isQuotation = false }: GSTInvoiceFormProps) => {
+export const GSTInvoiceForm = ({ onSuccess, isQuotation = false, fromEstimate }: GSTInvoiceFormProps) => {
   const blankItem = (): InvoiceItem => ({
-    id: Date.now().toString(),
-    name: '', hsn: '', qty: 1, unit: 'PCS',
+    id: Math.random().toString(36).substr(2, 9),
+    name: '', hsn: '8541', qty: 1, unit: 'PCS',
     rate: 0, discount: 0, taxRate: 18,
+    margin: 0, marginType: 'percentage'
   });
 
-  const [items, setItems] = useState<InvoiceItem[]>([]);
-  const [clientName,    setClientName]    = useState('');
-  const [clientGstin,   setClientGstin]   = useState('');
+  const [items, setItems] = useState<InvoiceItem[]>([blankItem()]);
+  const [clientName, setClientName] = useState('');
+  const [clientGstin, setClientGstin] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
   const [clientAddress, setClientAddress] = useState('');
-  const [showMargin,    setShowMargin]    = useState(true);
-  const [saving,        setSaving]        = useState(false);
-  const [searchQ,       setSearchQ]       = useState('');
-  const [showDrop,      setShowDrop]      = useState(false);
   const [ledgerAccount, setLedgerAccount] = useState('');
   const [paymentAccounts, setPaymentAccounts] = useState<any[]>([]);
-  const [products,      setProducts]      = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [searchQ, setSearchQ] = useState('');
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [saving, setSaving] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProducts();
-    fetchPaymentAccounts();
+    fetchAccounts();
+
     if (fromEstimate) {
       setClientName(fromEstimate.customerName || '');
-      setClientAddress(fromEstimate.customerAddress || '');
-      // Map items from estimate
-      if (fromEstimate.items) {
-        setItems(fromEstimate.items.map(i => ({
+      setClientPhone(fromEstimate.customerMobile || '');
+      setClientAddress(fromEstimate.billingAddress || '');
+      
+      if (fromEstimate.items && fromEstimate.items.length > 0) {
+        const mappedItems = fromEstimate.items.map(item => ({
           id: Math.random().toString(36).substr(2, 9),
-          productId: i.product?.id,
-          name: i.product?.productName || i.name,
-          hsn: i.product?.hsn || i.hsn || '',
-          qty: i.quantity || i.qty || 1,
-          unit: i.product?.unit || i.unit || 'PCS',
-          rate: i.unitPrice || i.rate || 0,
-          discount: 0,
-          taxRate: i.taxRate || 18,
-          costPrice: i.product?.purchasePrice || 0,
-          landedCost: i.product?.purchasePrice || 0,
-          margin: 0,
-          marginType: 'percentage'
-        })));
+          productId: item.productId || item.product?.id,
+          name: item.productName || item.product?.productName || item.name,
+          hsn: item.hsn || '8541',
+          qty: item.quantity || item.qty || 1,
+          unit: item.unit || 'PCS',
+          rate: item.unitPrice || item.rate || 0,
+          discount: item.discount || 0,
+          taxRate: item.taxRate || 18,
+        }));
+        setItems(mappedItems);
       }
     }
   }, [fromEstimate]);
@@ -120,421 +91,439 @@ export const GSTInvoiceForm = ({ fromEstimate, onSuccess, isQuotation = false }:
     try {
       const res = await inventoryApi.getAllProducts();
       if (res.status === 1) setProducts(res.data);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { toast.error("Catalog load failed"); }
   };
 
-  const fetchPaymentAccounts = async () => {
+  const fetchAccounts = async () => {
     try {
-        const res = await accountingApi.getPaymentAccounts();
-        if (res.status === 1) {
-            setPaymentAccounts(res.data);
-            if (res.data.length > 0) setLedgerAccount(res.data[0].id.toString());
-        }
-    } catch (e) {
-        console.error("Ledger fetch error:", e);
-    }
+      const res = await accountsApi.getAllAccounts();
+      if (res.status === 1) setPaymentAccounts(res.data);
+    } catch (e) { console.error(e); }
   };
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowDrop(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const filteredProducts = searchQ.length > 0
-    ? products.filter(p => p.productName.toLowerCase().includes(searchQ.toLowerCase()))
-    : products.slice(0, 5);
 
   const addItemFromProduct = (product: any) => {
     const cost = product.purchasePrice || 0;
-    const landed  = cost; // Simplified
-    const sRate   = product.sellingPrice || 0;
-
-    setItems(prev => [...prev, {
+    const sRate = product.sellingPrice || 0;
+    const margin = cost > 0 ? Number(((sRate / cost - 1) * 100).toFixed(2)) : 0;
+    const newItem: InvoiceItem = {
       id: Math.random().toString(36).substr(2, 9),
-      productId: product.id,
-      name: product.productName,
-      hsn: product.hsn || '8541',
-      qty: 1,
-      unit: product.unit || 'PCS',
-      rate: sRate,
-      discount: 0,
-      taxRate: 18,
-      costPrice: cost,
-      landedCost: landed,
-      margin: cost > 0 ? Number(((sRate / cost - 1) * 100).toFixed(2)) : 0,
-      marginType: 'percentage',
-    }]);
-    setSearchQ('');
-    setShowDrop(false);
-  };
-
-  const addItem = () => setItems(p => [...p, blankItem()]);
-
-  const removeItem = (id: string) => {
-    if (items.length > 1) setItems(p => p.filter(i => i.id !== id));
-    else setItems([blankItem()]);
+      productId: product.id, name: product.productName,
+      hsn: product.hsn || '8541', qty: 1, unit: product.unit || 'PCS',
+      rate: sRate, discount: 0, taxRate: 18,
+      costPrice: cost, landedCost: cost, margin, marginType: 'percentage',
+    };
+    setItems(prev => prev.length === 1 && !prev[0].name ? [newItem] : [...prev, newItem]);
+    setSearchQ(''); setShowCatalog(false);
   };
 
   const updateItem = (id: string, field: keyof InvoiceItem, value: any) =>
     setItems(prev => prev.map(item => {
       if (item.id !== id) return item;
       const u = { ...item, [field]: value };
-
-      if (!u.landedCost && u.costPrice) u.landedCost = u.costPrice;
-
-      if (field === 'margin' || field === 'marginType') {
-        if (u.landedCost) {
-          u.rate = u.marginType === 'percentage'
-            ? Math.round(u.landedCost * (1 + (u.margin || 0) / 100))
-            : Math.round(u.landedCost + (u.margin || 0));
-        }
+      if (field === 'margin' && u.costPrice) {
+        u.rate = Math.round(u.costPrice * (1 + (u.margin || 0) / 100));
       }
-
-      if (field === 'rate' && u.landedCost && u.landedCost > 0) {
-        u.margin = u.marginType === 'percentage'
-          ? Number(((u.rate / u.landedCost - 1) * 100).toFixed(2))
-          : u.rate - u.landedCost;
-      }
-
       return u;
     }));
 
-  const totals = items.reduce((acc, item) => {
+  const removeItem = (id: string) => {
+    if (items.length > 1) setItems(p => p.filter(i => i.id !== id));
+    else setItems([blankItem()]);
+  };
+
+  const totals = useMemo(() => items.reduce((acc, item) => {
     const sub = calcSubtotal(item);
     const tax = sub * (item.taxRate / 100);
-    return { subtotal: acc.subtotal + sub, tax: acc.tax + tax, total: acc.total + sub + tax };
-  }, { subtotal: 0, tax: 0, total: 0 });
+    return { subtotal: acc.subtotal + sub, tax: acc.tax + tax, total: acc.total + sub + tax, qty: acc.qty + item.qty };
+  }, { subtotal: 0, tax: 0, total: 0, qty: 0 }), [items]);
 
-  const totalProfit = items.reduce((acc, item) => {
-    if (!item.costPrice) return acc;
-    return acc + (item.rate - item.costPrice) * item.qty;
-  }, 0);
+  const totalProfit = items.reduce((acc, item) =>
+    acc + ((item.rate - (item.costPrice || 0)) * item.qty), 0);
 
-  const hasMarginData = items.some(i => i.costPrice !== undefined);
-  const invoiceNo     = `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  const handleSubmit = async () => {
-    if (!clientName) {
-      toast.error("Customer name is required");
-      return;
-    }
-    if (items.length === 0 || !items[0].name) {
-      toast.error("Add at least one item");
-      return;
-    }
-    if (!isQuotation && !ledgerAccount) {
-      toast.error("Please select a Payment/Ledger Account for the invoice");
-      return;
-    }
-
+  const handleSubmit = async (post: boolean = true) => {
+    if (!clientName) { toast.error("Customer name is required"); return; }
+    if (!ledgerAccount && !isQuotation) { toast.error("Select deposit account"); return; }
+    setSaving(true);
     try {
-      setSaving(true);
       const payload = {
-        customerName: clientName,
-        customerAddress: clientAddress,
-        customerGstin: clientGstin,
+        customerName: clientName, customerAddress: clientAddress, customerGstin: clientGstin,
         items: items.map(i => ({
           product: i.productId ? { id: i.productId } : null,
-          name: i.name,
-          quantity: i.qty,
-          unitPrice: i.rate,
-          taxRate: i.taxRate,
+          name: i.name, quantity: i.qty, unitPrice: i.rate, taxRate: i.taxRate,
           totalPrice: calcSubtotal(i) * (1 + i.taxRate / 100)
         })),
-        totalAmount: totals.total,
-        netAmount: totals.subtotal,
-        taxAmount: totals.tax,
-        status: isQuotation ? 'PENDING' : 'PAID',
-        ledger: ledgerAccount ? { id: parseInt(ledgerAccount) } : null
+        totalAmount: totals.total, netAmount: totals.subtotal, taxAmount: totals.tax,
+        status: post ? 'PAID' : 'PENDING',
+        financialAccountId: ledgerAccount ? Number(ledgerAccount) : null
       };
-
-      let res;
-      if (isQuotation) {
-        res = await salesApi.saveEstimate(payload);
-      } else {
-        // If it's a conversion, maybe mark estimate as converted?
-        res = await inventoryApi.saveSale({ ...payload, isPos: false });
-      }
-
-      if (res.success || res.status === 1) {
-        toast.success(isQuotation ? "Quotation saved successfully" : "Invoice generated successfully");
+      const res = isQuotation
+        ? await salesApi.saveEstimate(payload)
+        : await inventoryApi.saveSale({ ...payload, isPos: false });
+      if (res.status === 1) {
+        toast.success(isQuotation ? "Quotation Saved" : "Invoice Finalized");
         onSuccess?.();
-      } else {
-        toast.error(res.message || "Operation failed");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("An error occurred");
-    } finally {
-      setSaving(false);
-    }
+      } else toast.error(res.message);
+    } catch { toast.error("System error"); }
+    finally { setSaving(false); }
   };
 
   return (
-    <div className="flex-1 bg-slate-50/50 overflow-y-auto custom-scrollbar">
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in font-['Poppins'] relative" style={{ background: '#F8FAFC' }}>
       
-      {fromEstimate && (
-        <div className="bg-primary/5 border-b border-primary/20 px-6 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ArrowRight className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-              Converted from Estimate <strong>{fromEstimate.estimateNumber || fromEstimate.id}</strong> — review and finalize
-            </span>
+      {/* ── Header ── */}
+      <div className="page-header shrink-0 shadow-sm z-30">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-slate-900 flex items-center justify-center rounded-[5px] shadow-sm">
+            <FileText size={16} className="text-white" />
           </div>
-          {hasMarginData && (
-            <button
-              onClick={() => setShowMargin(v => !v)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 border text-[9px] font-bold uppercase tracking-widest transition-all",
-                showMargin
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-primary hover:text-primary"
-              )}
-            >
-              {showMargin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              {showMargin ? 'Hide Margin' : 'Show Margin'}
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="p-4 lg:p-6 space-y-8 w-full">
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center shadow">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900">{isQuotation ? 'Sales Quotation / Estimate' : 'Tax Invoice / Bill of Supply'}</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {fromEstimate ? `Based on ${fromEstimate.estimateNumber || fromEstimate.id}` : `Create New ${isQuotation ? 'Quotation' : 'GST Compliant Invoice'}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!fromEstimate && hasMarginData && (
-              <button
-                onClick={() => setShowMargin(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:border-primary hover:text-primary transition-all"
-              >
-                <TrendingUp className="w-3.5 h-3.5" /> Margin View
-              </button>
-            )}
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all">
-              <Printer className="w-3.5 h-3.5" /> Print
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving}
-              className={cn(
-                "flex items-center gap-2 px-5 py-2 text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow bg-slate-900 hover:bg-slate-800 disabled:opacity-50"
-              )}
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3.5 h-3.5" /> {isQuotation ? 'Save Quotation' : 'Finalize & Send'}</>}
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 p-4 shadow-sm flex items-center gap-4">
-          <div ref={searchRef} className="relative flex-1 max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-            <input
-              type="text"
-              placeholder="Search products in catalog..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-              value={searchQ}
-              onChange={e => { setSearchQ(e.target.value); setShowDrop(true); }}
-              onFocus={() => setShowDrop(true)}
-            />
-            {showDrop && filteredProducts.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 shadow-xl z-50 mt-0.5 max-h-72 overflow-y-auto">
-                {filteredProducts.map(p => (
-                  <button
-                    key={p.id}
-                    onMouseDown={() => addItemFromProduct(p)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 border-b border-slate-50 last:border-0 text-left group transition-colors"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-800 uppercase">{p.productName}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                          STOCK: {p.stockQuantity} {p.unit}
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-300">|</span>
-                        <span className="text-[9px] font-bold text-slate-400">Rate: ₹{p.sellingPrice?.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <Plus className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-b border-slate-100">
-            <div className="p-8 border-r border-slate-100">
-              <div className="flex items-center gap-2 text-slate-400 mb-4">
-                <Building2 className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Billed From</span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 mb-2">Helixion Innovations LLP</h3>
-              <div className="space-y-1 text-xs text-slate-500">
-                <p>Sector 62, Noida, Uttar Pradesh – 201301</p>
-                <p>GSTIN: <span className="font-bold text-slate-800 uppercase">09AAACH1234F1Z5</span></p>
-                <p>billing@helixion.in</p>
-              </div>
-            </div>
-            <div className="p-8 bg-slate-50/50">
-              <div className="flex items-center gap-2 text-slate-400 mb-4">
-                <User className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Billed To</span>
-              </div>
-              <input
-                type="text"
-                placeholder="Customer Name"
-                value={clientName}
-                onChange={e => setClientName(e.target.value)}
-                className="w-full bg-transparent text-base font-bold text-slate-900 border-none focus:ring-0 p-0 placeholder:text-slate-300 mb-3"
-              />
-              <input
-                type="text"
-                placeholder="GSTIN (Optional)"
-                value={clientGstin}
-                onChange={e => setClientGstin(e.target.value)}
-                className="w-full h-8 bg-white border border-slate-200 px-3 text-xs font-bold uppercase focus:border-primary outline-none mb-2"
-              />
-              <textarea
-                placeholder="Billing Address"
-                value={clientAddress}
-                onChange={e => setClientAddress(e.target.value)}
-                className="w-full h-16 bg-white border border-slate-200 p-3 text-xs focus:border-primary outline-none resize-none mb-4"
-              />
-
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-[11px] font-bold text-slate-900 tracking-tight uppercase">
+                {isQuotation ? 'Sales Quotation' : 'Tax Invoice'}
+              </h2>
               {!isQuotation && (
-                  <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <CreditCard className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Deposit Account (MANDATORY)</span>
-                    </div>
-                    <select 
-                        value={ledgerAccount}
-                        onChange={e => setLedgerAccount(e.target.value)}
-                        className="w-full h-10 bg-white border border-slate-200 px-3 text-xs font-bold uppercase focus:border-primary outline-none"
-                    >
-                        <option value="">-- SELECT PAYMENT ACCOUNT --</option>
-                        {paymentAccounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>{acc.name} ({acc.category})</option>
-                        ))}
+                <span className="px-1.5 py-0.5 bg-emerald-100 border border-emerald-200 rounded-[3px] text-[7px] font-black text-emerald-700 uppercase tracking-widest">Gst Compliant</span>
+              )}
+            </div>
+            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mt-0.5">Direct Transaction Entry</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn-secondary h-7 px-3 text-[10px] rounded-[5px] flex items-center gap-1.5">
+            <Printer size={12} /> Print
+          </button>
+          <button onClick={() => handleSubmit(false)} disabled={saving} className="btn-secondary h-7 px-3 text-[10px] rounded-[5px] flex items-center gap-1.5 disabled:opacity-50">
+            <Save size={12} /> Save Draft
+          </button>
+          <button
+            onClick={() => handleSubmit(true)}
+            disabled={saving || totals.total <= 0}
+            className="h-7 px-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-red-700 disabled:opacity-30 flex items-center gap-2 rounded-[5px]"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <><Send size={12} /> {isQuotation ? 'Save Quotation' : 'Finalize & Post'}</>}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Form Body (Scrollable) ── */}
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+
+        {/* ── Main Invoice Form Content ── */}
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar overflow-x-hidden">
+          <div className="space-y-4 pb-12 w-full max-w-[1400px] mx-auto">
+
+            {/* Top Row: Party & Ledger Grid */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Party Details Card */}
+            <div className="col-span-12 lg:col-span-8 bg-white border border-slate-200 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                <User size={12} className="text-slate-400" />
+                <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Party / Customer Details</h3>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="erp-label">Customer Name *</label>
+                  <input type="text" placeholder="Enter party name..." className="erp-input h-8 font-bold" value={clientName} onChange={e => setClientName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="erp-label">GSTIN (Optional)</label>
+                  <input type="text" placeholder="09ABCDE1234F1Z5" className="erp-input h-8 uppercase font-mono" value={clientGstin} onChange={e => setClientGstin(e.target.value)} />
+                </div>
+                <div>
+                  <label className="erp-label">Billing Address</label>
+                  <input type="text" placeholder="Location context..." className="erp-input h-8" value={clientAddress} onChange={e => setClientAddress(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Card */}
+            {!isQuotation && (
+              <div className="col-span-12 lg:col-span-4 bg-white border border-slate-200 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                  <CreditCard size={12} className="text-slate-400" />
+                  <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Payment Context</h3>
+                </div>
+                <div className="p-4 flex flex-col gap-3">
+                  <div>
+                    <label className="erp-label">Deposit Ledger / Bank Account</label>
+                    <select value={ledgerAccount} onChange={e => setLedgerAccount(e.target.value)} className="erp-input h-8 font-bold cursor-pointer">
+                      <option value="">-- SELECT ACCOUNT --</option>
+                      {paymentAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                     </select>
                   </div>
-              )}
-            </div>
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-100 rounded-[5px]">
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
+                      <ShieldCheck size={10} className="text-white" />
+                    </div>
+                    <p className="text-[9px] font-bold text-blue-700 leading-tight">Payments auto-reconciled against this ledger.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse">
-              <thead>
-                <tr>
-                  <th className={cn(thCls, "w-8")}>#</th>
-                  <th className={cn(thCls, "min-w-[220px]")}>Item Description</th>
-                  <th className={cn(thCls, "w-20 text-center")}>Qty</th>
-                  <th className={cn(thCls, "w-16 text-center")}>Unit</th>
-                  {showMargin && <th className={cn(thCls)}>Margin Info</th>}
-                  <th className={cn(thCls)}>Sales Rate</th>
-                  <th className={cn(thCls, "w-20")}>GST %</th>
-                  <th className={cn(thCls, "text-right")}>Total</th>
-                  <th className={cn(thCls, "w-10")}></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {items.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors group">
-                    <td className={cn(tdCls, "text-center text-slate-400 font-bold text-xs")}>{idx + 1}</td>
-                    <td className={tdCls}>
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={e => updateItem(item.id, 'name', e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 p-0 text-[12px] font-bold text-slate-800 placeholder:text-slate-300 w-full uppercase"
-                      />
-                      <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 italic">HSN: {item.hsn || 'N/A'}</p>
-                    </td>
-                    <td className={cn(tdCls, "text-center")}>
-                      <input
-                        type="number"
-                        value={item.qty}
-                        onChange={e => updateItem(item.id, 'qty', parseFloat(e.target.value) || 1)}
-                        className="w-16 py-1.5 px-2 text-center border border-slate-200 text-sm font-bold text-slate-800 bg-white"
-                      />
-                    </td>
-                    <td className={cn(tdCls, "text-center")}>
-                       <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{item.unit}</span>
-                    </td>
-                    {showMargin && (
-                      <td className={tdCls}>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={item.margin || 0}
-                            onChange={e => updateItem(item.id, 'margin', parseFloat(e.target.value) || 0)}
-                            className="w-14 py-1 border border-slate-200 text-[11px] font-bold text-slate-700 text-center"
-                          />
-                          <span className="ml-1 text-[10px] font-bold text-slate-400">%</span>
-                        </div>
-                        <p className="text-[8px] text-emerald-600 font-black mt-1">PROFIT: ₹{Math.round(((item.rate - (item.costPrice || 0)) * item.qty)).toLocaleString()}</p>
-                      </td>
-                    )}
-                    <td className={tdCls}>
-                      <input
-                        type="number"
-                        value={item.rate}
-                        onChange={e => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                        className="w-24 py-1.5 px-2 border border-slate-200 text-sm font-bold text-primary bg-white"
-                      />
-                    </td>
-                    <td className={tdCls}>
-                      <select
-                        value={item.taxRate}
-                        onChange={e => updateItem(item.id, 'taxRate', parseInt(e.target.value))}
-                        className="py-1 px-1 border border-slate-200 text-xs font-bold bg-white"
-                      >
-                        {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
-                      </select>
-                    </td>
-                    <td className={cn(tdCls, "text-right")}>
-                       <p className="text-[12px] font-bold text-slate-900">₹{(calcSubtotal(item) * (1 + item.taxRate/100)).toLocaleString()}</p>
-                    </td>
-                    <td className={cn(tdCls, "text-center")}>
-                       <button onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-primary"><X className="w-4 h-4" /></button>
-                    </td>
+
+          {/* Quick Finder / Action Bar */}
+          <div className="bg-white border border-slate-200 p-2 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-3">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 group-focus-within:text-slate-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="QUICK FINDER / CATALOG SEARCH OR BARCODE..."
+                className="w-full h-8 pl-9 pr-4 bg-slate-50/50 text-[11px] font-bold text-slate-800 placeholder:text-slate-300 outline-none border border-transparent focus:border-slate-200 focus:bg-white rounded-[5px] transition-all"
+                value={searchQ}
+                onChange={e => { setSearchQ(e.target.value); if(!showCatalog) setShowCatalog(true); }}
+                onClick={() => setShowCatalog(true)}
+              />
+            </div>
+            <div className="h-4 w-[1px] bg-slate-200 mx-1" />
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowCatalog(!showCatalog)} 
+                className={cn(
+                  "h-8 px-4 text-[9px] font-bold uppercase tracking-widest rounded-[5px] transition-all flex items-center gap-2",
+                  showCatalog ? "bg-primary text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                )}
+              >
+                <Layers size={12} /> {showCatalog ? 'Close Catalog' : 'Open Catalog'}
+              </button>
+              <button onClick={() => setItems([...items, blankItem()])} className="btn-secondary h-8 px-4 text-[9px] flex items-center gap-2">
+                <Plus size={12} /> Custom Row
+              </button>
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden min-h-[280px]">
+            <div className="px-4 py-2 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Layers size={12} className="text-slate-400" />
+                <h3 className="text-[10px] font-bold uppercase tracking-widest">Invoice Line Items</h3>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 opacity-50">
+                  <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                  <span className="text-[8px] font-bold text-white uppercase tracking-wider">HSN Auto-fetch</span>
+                </div>
+                <div className="h-3 w-[1px] bg-white/10" />
+                <span className="text-[9px] font-bold text-blue-400 uppercase italic">Active Positions: {items.length}</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left min-w-[900px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/80">
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-10 text-center whitespace-nowrap">#</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">ITEM DESCRIPTION / PARTICULARS</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-20 text-center whitespace-nowrap">UNIT QTY</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-24 text-center whitespace-nowrap italic bg-slate-50">P. RATE (EX)</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-emerald-600 uppercase tracking-widest w-24 text-center whitespace-nowrap bg-emerald-50/30">PROFIT %</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-blue-600 uppercase tracking-widest w-24 text-center whitespace-nowrap bg-blue-50/30">SALE RATE</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-20 text-center whitespace-nowrap">TAX %</th>
+                    <th className="py-2.5 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-32 text-right pr-6 whitespace-nowrap">LINE TOTAL</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="px-6 py-4 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-            <button onClick={addItem} className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
-              <Plus className="w-3.5 h-3.5" /> Add Manual Line
-            </button>
-            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-               <span>Subtotal: ₹{Math.round(totals.subtotal).toLocaleString()}</span>
-               <span>Tax: ₹{Math.round(totals.tax).toLocaleString()}</span>
-               <span className="text-primary">Total: ₹{Math.round(totals.total).toLocaleString()}</span>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {items.map((item, idx) => (
+                    <tr key={item.id} className="group hover:bg-slate-50/50 transition-all relative">
+                      <td className="py-2 px-3 text-center text-[9px] font-black text-slate-300 font-mono">{idx + 1}</td>
+                      <td className="py-2 px-3">
+                        <input
+                          value={item.name}
+                          onChange={e => updateItem(item.id, 'name', e.target.value)}
+                          className="w-full bg-transparent text-[10px] font-bold text-slate-900 uppercase focus:ring-0 outline-none placeholder:text-slate-200"
+                          placeholder="Enter item particulars..."
+                        />
+                        <p className="text-[7px] font-black text-slate-300 uppercase mt-0.5 tracking-tighter">
+                          HSN: {item.hsn || '8541'} • CID: {item.productId || 'GEN'}
+                        </p>
+                      </td>
+                      <td className="py-2 px-3">
+                        <input
+                          type="number" value={item.qty}
+                          onChange={e => updateItem(item.id, 'qty', parseFloat(e.target.value) || 1)}
+                          className="w-full h-7 bg-slate-50 border border-slate-100 text-center text-[10px] font-black text-slate-900 rounded group-hover:bg-white transition-all outline-none focus:border-primary"
+                        />
+                      </td>
+                      <td className="py-2 px-3 bg-slate-50/40">
+                        <div className="text-center">
+                          <span className="text-[10px] font-bold text-slate-400 italic">₹{item.costPrice || 0}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 bg-emerald-50/20">
+                        <div className="flex items-center justify-center gap-0.5">
+                          <input
+                            type="number" value={item.margin}
+                            onChange={e => updateItem(item.id, 'margin', parseFloat(e.target.value) || 0)}
+                            className="w-10 h-6 border-b border-emerald-200 bg-transparent text-center text-[10px] font-black text-emerald-600 outline-none focus:border-emerald-400"
+                          />
+                          <span className="text-[8px] font-bold text-emerald-300">%</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 bg-blue-50/20">
+                        <div className="text-center">
+                          <span className="text-[11px] font-black text-blue-600 underline underline-offset-2 decoration-blue-100">₹{item.rate}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="text-center">
+                          <select
+                            value={item.taxRate}
+                            onChange={e => updateItem(item.id, 'taxRate', parseInt(e.target.value))}
+                            className="bg-transparent text-[9px] font-black text-slate-500 border-none focus:ring-0 cursor-pointer text-center"
+                          >
+                            {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                          </select>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-6 px-3 text-right">
+                        <p className="text-[11px] font-black text-slate-900 tracking-tight">
+                          ₹{Math.round(calcSubtotal(item) * (1 + item.taxRate / 100)).toLocaleString()}
+                        </p>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+
+          {/* Summary Widgets */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-4">
+            <div className="bg-white border border-slate-200 rounded-[5px] p-4 flex items-center justify-between">
+              <div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Pre-Tax Subtotal</p>
+                <p className="text-[14px] font-black text-slate-900 leading-none">₹{Math.round(totals.subtotal).toLocaleString()}</p>
+              </div>
+              <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center">
+                <Layers size={14} className="text-slate-400" />
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-[5px] p-4 flex items-center justify-between">
+              <div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tax Aggregate</p>
+                <p className="text-[14px] font-black text-slate-900 leading-none">₹{Math.round(totals.tax).toLocaleString()}</p>
+              </div>
+              <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center">
+                <ShieldCheck size={14} className="text-blue-500" />
+              </div>
+            </div>
+            <div className="bg-emerald-600 rounded-[5px] p-4 flex items-center justify-between shadow-lg shadow-emerald-200/50">
+              <div>
+                <p className="text-[8px] font-black text-emerald-100 uppercase tracking-widest leading-none mb-1">Projected Profit</p>
+                <p className="text-[16px] font-black text-white leading-none">₹{Math.round(totalProfit).toLocaleString()}</p>
+              </div>
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+                <TrendingUp size={14} className="text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+        {/* ── Slide-out Catalog Panel (Right Side) ── */}
+        <div 
+          className={cn(
+            "absolute top-0 right-0 bottom-0 z-50 bg-white border-l border-slate-200 shadow-2xl transition-all duration-300 ease-in-out flex flex-col",
+            showCatalog ? "w-[300px] visible translate-x-0" : "w-0 invisible translate-x-full"
+          )}
+        >
+          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Digital Catalog</p>
+              <p className="text-[8px] font-bold text-primary uppercase">Click to add to invoice</p>
+            </div>
+            <button onClick={() => setShowCatalog(false)} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors">
+              <X size={14} className="text-slate-400" />
+            </button>
+          </div>
+
+          <div className="p-3 border-b border-slate-100 shrink-0">
+             <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300" />
+                <input
+                  type="text"
+                  placeholder="Filter catalog..."
+                  className="w-full h-8 pl-8 pr-3 bg-slate-50/50 border border-slate-200 rounded-[5px] text-[10px] font-bold text-slate-700 outline-none focus:border-primary transition-all"
+                  value={searchQ}
+                  onChange={e => setSearchQ(e.target.value)}
+                />
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+            {(searchQ ? products.filter(p => p.productName?.toLowerCase().includes(searchQ.toLowerCase())) : products).map(p => (
+              <button
+                key={p.id}
+                onClick={() => { addItemFromProduct(p); /* toast.success('Added ' + p.productName); */ }}
+                className="w-full flex items-center justify-between px-3 py-3 border border-transparent hover:border-primary/20 hover:bg-primary/5 rounded-[5px] transition-all text-left mb-1 group"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10.5px] font-bold text-slate-800 uppercase leading-tight truncate">{p.productName}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-1">
+                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Stock: {p.stockQuantity ?? '0'}</span>
+                    </div>
+                    <span className="text-[9px] font-black text-primary italic font-mono">₹{p.sellingPrice ?? p.purchasePrice}</span>
+                  </div>
+                </div>
+                <div className="w-6 h-6 rounded bg-slate-50 group-hover:bg-primary flex items-center justify-center shrink-0 transition-all border border-slate-100 group-hover:border-primary shadow-sm">
+                  <Plus size={12} className="text-slate-400 group-hover:text-white transition-colors" />
+                </div>
+              </button>
+            ))}
+            {products.length === 0 && (
+              <div className="py-20 text-center opacity-30 flex flex-col items-center">
+                <Layers size={32} className="mb-2 text-slate-300" />
+                <p className="text-[9px] font-bold uppercase tracking-widest">No catalog nodes found</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col gap-2">
+             <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-[5px]">
+                <ShieldCheck size={12} className="text-blue-500" />
+                <p className="text-[8px] font-bold text-blue-700 uppercase">Auto-sync with Inventory</p>
+             </div>
+             <button onClick={() => setShowCatalog(false)} className="w-full h-8 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-[5px]">Hide Catalog View</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Fixed Bottom Footer ── */}
+      <div className="h-[60px] bg-slate-900 px-6 border-t border-slate-800 flex items-center justify-between shrink-0 z-40 shadow-[0_-8px_20px_rgba(0,0,0,0.15)]">
+        <div className="flex items-center gap-8">
+          <div className="flex flex-col">
+            <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">NET PAYABLE (EXCL. TAX)</span>
+            <span className="text-[13px] font-bold text-slate-400">₹{Math.round(totals.subtotal).toLocaleString()}</span>
+          </div>
+          <div className="h-6 w-[1px] bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.15em]">Compliance Engine: OK</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-8">
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em] leading-none mb-1">GRAND TOTAL</span>
+            <span className="text-[24px] font-black text-white leading-none tracking-tighter italic">₹{Math.round(totals.total).toLocaleString()}</span>
+          </div>
+          <button
+            onClick={() => handleSubmit(true)}
+            disabled={saving || totals.total <= 0}
+            className={cn(
+              "h-10 px-7 text-[10px] font-black uppercase tracking-[0.15em] rounded-[5px] flex items-center gap-2 transition-all",
+              "bg-red-600 hover:bg-red-700 text-white hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30"
+            )}
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <><Send size={14} strokeWidth={3} /> {isQuotation ? 'Save Quotation' : 'Finalize & Post'}</>}
+          </button>
         </div>
       </div>
     </div>

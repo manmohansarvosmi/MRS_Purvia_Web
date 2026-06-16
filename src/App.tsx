@@ -14,7 +14,7 @@ import { RouteTracking } from '@/src/components/routes/RouteTracking';
 import { LoginPage } from '@/src/components/auth/LoginPage';
 import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
 import { NotificationCenter } from '@/src/components/notifications/NotificationCenter';
-import { ManufacturingModule } from '@/src/components/manufacturing/ManufacturingModule';
+import { VendorModule } from '@/src/components/inventory/VendorModule';
 import { AssetModule } from '@/src/components/assets/AssetModule';
 import { AuditModule } from '@/src/components/audit/AuditModule';
 import { SupportModule } from '@/src/components/support/SupportModule';
@@ -129,6 +129,7 @@ export default function App() {
   }, []);
 
   const handleLogin = (token: string) => {
+    localStorage.setItem('userToken', token);
     setIsAuthenticated(true);
   };
 
@@ -172,8 +173,8 @@ export default function App() {
         return <InventoryModule />;
       case 'sales':
         return <SalesModule />;
-      case 'manufacturing':
-        return <ManufacturingModule />;
+      case 'vendors':
+        return <VendorModule />;
       case 'employees':
         return <EmployeeModule />;
       case 'routes':
@@ -199,7 +200,7 @@ export default function App() {
   ];
 
   return (
-    <div className="h-screen bg-[#F8FAFC] overflow-hidden flex flex-col lg:flex-row">
+    <div className="h-screen overflow-hidden flex flex-col lg:flex-row" style={{ background: '#EAECF0' }}>
       {/* Desktop Sidebar */}
       <div className="hidden lg:block shrink-0">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -220,7 +221,8 @@ export default function App() {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[51] lg:hidden"
+              className="fixed top-0 left-0 bottom-0 w-56 z-[51] lg:hidden"
+              style={{ background: '#1E2330' }}
             >
               <Sidebar activeTab={activeTab} setActiveTab={(tab) => {
                 setActiveTab(tab);
@@ -231,44 +233,46 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 h-full transition-all duration-300 pb-20 lg:pb-0 flex flex-col overflow-hidden lg:pl-64">
+      <main className="flex-1 h-full pb-16 lg:pb-0 flex flex-col overflow-hidden lg:pl-[180px]">
         <TopBar 
           title={getPageTitle()} 
           onMenuClick={() => setIsSidebarOpen(true)} 
           onLogout={handleLogout}
         />
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: '#F8FAFC' }}>
           {renderContent()}
         </div>
 
         {/* Global Footer */}
-        <footer className="hidden lg:flex h-10 shrink-0 items-center justify-between px-8 border-t border-slate-100 bg-white">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-            © 2026 Helixion Innovations · Cloud ERP v2.4
-          </p>
+        <footer
+          className="hidden lg:flex h-9 shrink-0 items-center justify-between px-6"
+          style={{ background: '#FFFFFF', borderTop: '1px solid #E5E7EB' }}
+        >
+          <span style={{ fontSize: '10px', color: '#9CA3AF' }}>© 2026 Helixion Innovations — Cloud ERP v2.4</span>
           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Engine</span>
-             </div>
-             <a href="#" className="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">Documentation</a>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500 }}>Live Engine</span>
+            </div>
+            <a href="#" style={{ fontSize: '10px', color: '#C8102E', fontWeight: 500 }}>Documentation</a>
           </div>
         </footer>
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-2 flex items-center justify-around z-40 pb-safe">
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 px-4 py-2 flex items-center justify-around z-40"
+        style={{ background: '#1E2330', borderTop: '1px solid #2D3347' }}
+      >
         {mobileNavItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all rounded-xl",
-              activeTab === item.id ? "text-primary bg-primary/5" : "text-slate-400"
-            )}
+            className="flex flex-col items-center gap-1 p-2 transition-all"
+            style={{ color: activeTab === item.id ? '#C8102E' : '#64748B' }}
           >
-            <item.icon className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase tracking-tighter">{item.label}</span>
+            <item.icon size={16} />
+            <span style={{ fontSize: '9px', fontWeight: 500 }}>{item.label}</span>
           </button>
         ))}
       </nav>

@@ -1,31 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  Settings, 
-  LogOut, 
-  Calendar, 
-  Wallet, 
-  History, 
-  Bell,
-  ChevronDown,
-  ChevronRight,
-  Map as MapIcon,
-  Layers,
-  LayoutDashboard,
-  CreditCard,
-  Building,
-  BookOpen,
-  Banknote,
-  Repeat,
-  FileText,
-  ArrowDownCircle,
-  ArrowUpCircle,
+import {
+  BarChart3, Users, Package, ShoppingCart, Settings, LogOut,
+  Calendar, Wallet, History, Bell, ChevronDown, ChevronRight,
+  Map as MapIcon, LayoutDashboard, CreditCard, Building,
+  BookOpen, Banknote, Repeat, FileText, ArrowDownCircle, ArrowUpCircle,
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 
 interface SidebarProps {
   activeTab: string;
@@ -33,114 +14,103 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Main' },
-  
-  { id: 'inventory', label: 'Inventory Master', icon: Package, group: 'Operations' },
-  { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, group: 'Operations' },
-  { id: 'manufacturing', label: 'Manufacturing', icon: Building, group: 'Operations' },
-  
-  { id: 'accounts', label: 'Accounts', icon: Wallet, group: 'Accounting' },
-  { id: 'ledger', label: 'Ledger Registry', icon: BookOpen, group: 'Accounting' },
-  { id: 'cashbook', label: 'Cash Book', icon: Banknote, group: 'Accounting' },
-  { id: 'daybook', label: 'Day Book', icon: History, group: 'Accounting' },
-  { id: 'vouchers', label: 'Voucher Entry', icon: Repeat, group: 'Accounting' },
-  
-  { id: 'expenses', label: 'Expenses', icon: ArrowDownCircle, group: 'Financial Ops' },
-  { id: 'income', label: 'Income', icon: ArrowUpCircle, group: 'Financial Ops' },
-  { id: 'billing', label: 'Invoice & Billing', icon: FileText, group: 'Financial Ops' },
-  
-  { id: 'employees', label: 'Employee Roll', icon: Users, group: 'HR Management' },
-  { id: 'attendance', label: 'Attendance', icon: Calendar, group: 'HR Management' },
-  { id: 'payroll', label: 'Payroll', icon: CreditCard, group: 'HR Management' },
-  { id: 'routes', label: 'Route Tracking', icon: MapIcon, group: 'HR Management' },
-  
-  { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Insights' },
-  
-  { id: 'notifications', label: 'Notifications', icon: Bell, group: 'System' },
-  { id: 'settings', label: 'Settings', icon: Settings, group: 'System' },
+  { id: 'dashboard',    label: 'Dashboard',        icon: LayoutDashboard, group: 'Main' },
+  { id: 'inventory',   label: 'Inventory Control', icon: Package,         group: 'Ops' },
+  { id: 'sales',       label: 'Sales & POS',       icon: ShoppingCart,    group: 'Ops' },
+  { id: 'vendors',       label: 'Vendor Master',     icon: Users,           group: 'Ops' },
+  { id: 'accounts',   label: 'Bank Accounts',      icon: Wallet,          group: 'Fin' },
+  { id: 'ledger',     label: 'General Ledger',     icon: BookOpen,        group: 'Fin' },
+  { id: 'cashbook',   label: 'Cash Book',          icon: Banknote,        group: 'Fin' },
+  { id: 'daybook',    label: 'Daily Journal',      icon: History,         group: 'Fin' },
+  { id: 'vouchers',   label: 'Voucher Registry',   icon: Repeat,          group: 'Fin' },
+  { id: 'employees',  label: 'HR Personnel',       icon: Users,           group: 'HR' },
+  { id: 'attendance', label: 'Attendance',         icon: Calendar,        group: 'HR' },
+  { id: 'payroll',    label: 'Payroll Engine',     icon: CreditCard,      group: 'HR' },
+  { id: 'routes',     label: 'Route Map',          icon: MapIcon,         group: 'HR' },
+  { id: 'reports',    label: 'Business BI',        icon: BarChart3,       group: 'Insights' },
+  { id: 'notifications', label: 'Alert Center',    icon: Bell,            group: 'Core' },
+  { id: 'settings',  label: 'Global Settings',     icon: Settings,        group: 'Core' },
 ];
 
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
-  const groups = Array.from(new Set(navItems.map(item => item.group)));
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Main', 'Accounting', 'HR Management', 'Operations']);
+  const groups = Array.from(new Set(navItems.map(i => i.group)));
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Main', 'Fin', 'Ops', 'HR']);
 
   const toggleGroup = (group: string) => {
-    setExpandedGroups(prev => 
+    setExpandedGroups(prev =>
       prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
     );
   };
 
   return (
-    <div className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 z-50">
-      {/* Brand Header */}
-      <div className="p-6 border-b border-gray-50 flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-lg shadow-md">
-          <Layers className="w-4 h-4 text-white" />
+    <div
+      className="w-[180px] h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden shadow-lg shadow-slate-200/60"
+      style={{ background: '#FFFFFF', borderRight: '1px solid #E2E8F0' }}
+    >
+      {/* ── Brand ── */}
+      <div className="flex items-center gap-2 px-3 py-3 shrink-0" style={{ borderBottom: '1px solid #E2E8F0' }}>
+        <div
+          className="w-5 h-5 flex items-center justify-center shrink-0 shadow-lg"
+          style={{ background: '#C8102E', borderRadius: '2px' }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
         </div>
         <div>
-          <h1 className="text-sm font-bold tracking-tight text-gray-900 leading-none">Helixion</h1>
-          <p className="text-[8px] font-bold text-primary uppercase tracking-widest mt-1">Financial ERP</p>
+          <p className="font-bold leading-none" style={{ fontSize: '10px', letterSpacing: '0.01em', color: '#1E2330' }}>HELIXION</p>
+          <p style={{ fontSize: '7px', color: '#C8102E', fontWeight: 900, letterSpacing: '0.1em', marginTop: '2px' }}>ULTRA CORE</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto no-scrollbar">
-        {groups.map((group) => {
+      {/* ── Nav ── */}
+      <nav className="flex-1 overflow-y-auto no-scrollbar py-2">
+        {groups.map(group => {
           const isExpanded = expandedGroups.includes(group);
-          const items = navItems.filter((item) => item.group === group);
-          const hasActiveItem = items.some(item => item.id === activeTab);
+          const items = navItems.filter(i => i.group === group);
+          const hasActive = items.some(i => i.id === activeTab);
 
           return (
-            <div key={group} className="space-y-1">
-              <button 
+            <div key={group} className="mb-0.5">
+              {/* Group Header */}
+              <button
                 onClick={() => toggleGroup(group)}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-1.5 hover:bg-gray-50 transition-all rounded-lg group",
-                  hasActiveItem && "bg-slate-50/50"
-                )}
+                className="w-full flex items-center justify-between px-3 py-1 opacity-50 hover:opacity-100 transition-opacity"
               >
-                <h3 className={cn(
-                  "text-[9px] font-bold uppercase tracking-widest transition-colors",
-                  isExpanded || hasActiveItem ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"
-                )}>
+                <span style={{ fontSize: '7.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8' }}>
                   {group}
-                </h3>
-                {isExpanded ? (
-                  <ChevronDown className="w-3 h-3 text-gray-300" />
-                ) : (
-                  <ChevronRight className="w-3 h-3 text-gray-300" />
-                )}
+                </span>
+                {isExpanded ? <ChevronDown size={7} color="#CBD5E1" /> : <ChevronRight size={7} color="#CBD5E1" />}
               </button>
-              
+
               <AnimatePresence initial={false}>
                 {isExpanded && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
+                    animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.1, ease: "easeInOut" }}
-                    className="overflow-hidden space-y-0.5"
+                    transition={{ duration: 0.1 }}
+                    className="overflow-hidden"
                   >
-                    {items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-1.5 transition-all group relative rounded-lg",
-                          activeTab === item.id
-                            ? "bg-red-50 text-primary font-bold"
-                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50/50"
-                        )}
-                      >
-                        <item.icon className={cn(
-                          "w-3.5 h-3.5 transition-colors shrink-0",
-                          activeTab === item.id ? "text-primary" : "text-gray-400 group-hover:text-gray-600"
-                        )} />
-                        <span className="text-[11px] font-medium tracking-tight whitespace-nowrap truncate">{item.label}</span>
-                        {activeTab === item.id && (
-                          <div className="absolute left-0 w-0.5 h-3 bg-primary rounded-r-full" />
-                        )}
-                      </button>
-                    ))}
+                    {items.map(item => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveTab(item.id)}
+                          className="w-full flex items-center gap-2 px-3 py-1 relative transition-all"
+                          style={{
+                            background: isActive ? 'rgba(200,16,46,0.07)' : 'transparent',
+                            borderLeft: isActive ? '2px solid #C8102E' : '2px solid transparent',
+                          }}
+                        >
+                          <item.icon size={11} color={isActive ? '#C8102E' : '#94A3B8'} strokeWidth={isActive ? 2.5 : 1.5} className="shrink-0" />
+                          <span style={{ fontSize: '10.5px', fontWeight: isActive ? 600 : 400, color: isActive ? '#C8102E' : '#475569', whiteSpace: 'nowrap' }}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -149,28 +119,18 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
         })}
       </nav>
 
-      {/* User Session */}
-      <div className="p-4 border-t border-gray-50 bg-gray-50/20">
-        <div className="flex items-center gap-3 p-2 bg-white border border-gray-100 shadow-sm rounded-lg mb-2 group cursor-pointer hover:border-primary/20 transition-all">
-          <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-600 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
-            AD
-          </div>
+      {/* ── Profile Footer ── */}
+      <div className="shrink-0 px-3 py-2" style={{ borderTop: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-5 h-5 flex items-center justify-center shrink-0 rounded-[2px]" style={{ fontSize: '7px', fontWeight: 800, color: '#FFF', background: '#C8102E', border: '1px solid #C8102E' }}>AD</div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-gray-900 truncate leading-none mb-1">Admin User</p>
-            <p className="text-[8px] text-primary font-bold uppercase tracking-tighter">Super Admin</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#1E2330', lineHeight: 1 }}>Admin</p>
+            <p style={{ fontSize: '7px', color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase' }}>Super</p>
           </div>
+          <button onClick={() => { localStorage.removeItem('userToken'); window.location.reload(); }} className="text-slate-500 hover:text-red-500 transition-colors">
+            <LogOut size={10} />
+          </button>
         </div>
-        
-        <button 
-          onClick={() => {
-            localStorage.removeItem('userToken');
-            window.location.reload();
-          }}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all group"
-        >
-          <LogOut className="w-3 h-3 group-hover:text-red-600" />
-          <span>Sign Out</span>
-        </button>
       </div>
     </div>
   );

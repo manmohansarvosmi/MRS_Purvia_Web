@@ -1,182 +1,133 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  History, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Search, 
-  Filter, 
-  Download,
-  ArrowRight,
-  RefreshCw,
-  ChevronRight,
-  Clock
+  History, ArrowUpRight, ArrowDownRight, Search, Filter, Download, ArrowRight, RefreshCw, Clock, Loader2
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { inventoryApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-const typeConfig = {
-  IN:       { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: ArrowDownRight },
-  OUT:      { bg: 'bg-rose-50',    text: 'text-rose-600',    border: 'border-rose-100',    icon: ArrowUpRight   },
-  ADJUST:   { bg: 'bg-indigo-50',  text: 'text-indigo-600',  border: 'border-indigo-100',  icon: RefreshCw      },
-  RETURN:   { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',   icon: RefreshCw      },
-};
-
 export const InventoryLogs = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  useEffect(() => { fetchLogs(); }, []);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const res = await inventoryApi.getAllLogs();
-      if (res.status === 1) {
-        setLogs(res.data);
-      } else {
-        toast.error(res.message || "Failed to fetch logs");
-      }
-    } catch (error) {
-      console.error("Error fetching logs:", error);
-      toast.error("An error occurred while fetching logs");
+      if (res.status === 1) setLogs(res.data);
+    } catch {
+      toast.error("Failed to fetch logs");
     } finally {
       setLoading(false);
     }
   };
 
-  const getLogType = (type: string) => {
-    if (type === 'PURCHASE') return 'IN';
-    if (type === 'SALE') return 'OUT';
-    if (type === 'ADJUSTMENT') return 'ADJUST';
-    if (type === 'RETURN') return 'RETURN';
-    return 'ADJUST';
-  };
   return (
-    <div className="flex-1 flex flex-col bg-slate-100/40 overflow-hidden">
-
-      {/* Header */}
-      <div className="px-6 py-5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10">
-            <History className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-slate-900 uppercase tracking-tight">Movement Logs</h2>
-            <p className="text-[10px] font-normal text-slate-400 mt-0.5 uppercase tracking-widest">Real-time audit trail and stock tracing</p>
-          </div>
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in" style={{ background: '#fff' }}>
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0">
+        <div>
+          <h2>Movement Ledger</h2>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>Global Inventory Audit Trail</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-medium uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-[10px] font-medium uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
-            <Download className="w-4 h-4" /> Export Audit
-          </button>
+          <div className="search-bar">
+            <Search />
+            <input placeholder="Search audit logs..." style={{ width: 220 }} />
+          </div>
+          <button className="btn-secondary" onClick={fetchLogs}><RefreshCw size={12} /> Sync</button>
+          <button className="btn-secondary"><Download size={12} /> Export CSV</button>
         </div>
       </div>
 
-      {/* Content with Margin */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-        
-        {/* Card Component */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
-          
-          {/* Internal Toolbar */}
-          <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
-              <input 
-                type="text" 
-                placeholder="Search logs by product, SKU, or user..." 
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-normal outline-none focus:border-primary/20 transition-all"
-              />
-            </div>
-            <button className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[10px] font-medium uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all">
-              <Filter className="w-4 h-4" /> Date Range
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[900px]">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  {['Time & Info', 'Transaction Type', 'Product Details', 'Movement Log', 'Result'].map((h) => (
-                    <th key={h} className="px-8 py-5 text-[10px] font-medium uppercase tracking-widest text-slate-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 bg-white">
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-10 text-center text-slate-400 uppercase tracking-widest text-[10px]">
-                      Loading Logs...
-                    </td>
-                  </tr>
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-10 text-center text-slate-400 uppercase tracking-widest text-[10px]">
-                      No Movement Logs
-                    </td>
-                  </tr>
-                ) : logs.map((m) => {
-                  const type = getLogType(m.logType);
-                  const cfg = typeConfig[type as keyof typeof typeConfig];
-                  const Icon = cfg.icon;
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white border border-transparent group-hover:border-slate-200 transition-all">
-                              <Clock className="w-4 h-4" />
-                           </div>
-                           <span className="text-xs font-medium text-slate-900 tracking-tight">
-                             {m.createdOn ? format(new Date(m.createdOn), 'dd MMM, hh:mm a') : 'N/A'}
-                           </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className={cn('inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-semibold uppercase tracking-widest', cfg.bg, cfg.text, cfg.border)}>
-                          <Icon className="w-3.5 h-3.5" />
-                          {m.logType}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <p className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors">{m.product?.productName}</p>
-                        <p className="text-[10px] font-normal text-slate-400 mt-2 uppercase tracking-widest">SKU: {m.product?.sku}</p>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4 text-xs font-normal text-slate-600">
-                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">Stock: {m.previousStock}</span>
-                          <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
-                          <span className="truncate max-w-[120px] bg-slate-50 px-2 py-1 rounded border border-slate-100">Final: {m.finalStock}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="space-y-1">
-                           <p className="text-sm font-semibold text-slate-900">
-                             {m.changeAmount > 0 ? `+${m.changeAmount}` : m.changeAmount} {m.product?.unit}
-                           </p>
-                           <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700">
-                             {m.reason || 'Completed'}
-                           </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-[10px] font-medium text-slate-400 uppercase tracking-widest">
-            {logs.length} audit logs displayed for current session
-          </div>
+      {/* ── Stats Bar ── */}
+      <div className="flex items-center gap-10 px-5 py-3 shrink-0" style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+        <div>
+          <p className="erp-label !mb-1">Total Logs Indexed</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{logs.length}</p>
+        </div>
+        <div>
+          <p className="erp-label !mb-1">Recent Movements</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>
+            {logs.filter(l => l.logType === 'PURCHASE' || l.logType === 'SALE').length} Records
+          </p>
         </div>
       </div>
+
+      {/* ── Data Grid ── */}
+      <div className="flex-1 overflow-auto">
+        <table className="erp-table">
+          <thead>
+            <tr>
+              <th style={{ width: 140 }}>Timestamp</th>
+              <th style={{ width: 120 }}>Type</th>
+              <th>Product Details</th>
+              <th>Movement Audit</th>
+              <th style={{ textAlign: 'right', width: 100 }}>Adjustment</th>
+              <th style={{ width: 100, textAlign: 'center' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '60px 0' }}>
+                   <div className="flex flex-col items-center gap-2">
+                    <Loader2 size={24} className="animate-spin" color="#C8102E" />
+                    <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase' }}>Tracing Audit History...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : logs.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', fontSize: 12 }}>
+                  No movement logs found in central registry.
+                </td>
+              </tr>
+            ) : logs.map((m) => (
+              <tr key={m.id}>
+                <td style={{ fontSize: 11, color: '#4B5563', fontWeight: 500 }}>
+                  {m.createdOn ? format(new Date(m.createdOn), 'dd MMM, hh:mm a') : '—'}
+                </td>
+                <td>
+                  <span className={cn(
+                    "badge",
+                    m.logType === 'PURCHASE' ? 'badge-success' : 
+                    m.logType === 'SALE' ? 'badge-danger' : 
+                    m.logType === 'ADJUSTMENT' ? 'badge-info' : 'badge-neutral'
+                  )} style={{ width: '100%', justifyContent: 'center' }}>
+                    {m.logType}
+                  </span>
+                </td>
+                <td>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>{m.product?.productName}</p>
+                  <p style={{ fontSize: 10, color: '#9CA3AF', fontFamily: 'monospace' }}>SKU: {m.product?.sku}</p>
+                </td>
+                <td>
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                    <span style={{ padding: '2px 6px', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 2 }}>{m.previousStock}</span>
+                    <ArrowRight size={10} className="text-slate-300" />
+                    <span style={{ padding: '2px 6px', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 2, color: '#111827', fontWeight: 700 }}>{m.finalStock}</span>
+                  </div>
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 13, color: m.changeAmount > 0 ? '#059669' : '#DC2626' }}>
+                  {m.changeAmount > 0 ? '+' : ''}{m.changeAmount}
+                  <span style={{ fontSize: 10, marginLeft: 2, fontWeight: 500, color: '#9CA3AF' }}>{m.product?.unit}</span>
+                </td>
+                <td>
+                   <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#9CA3AF', width: '100%', display: 'block', textAlign: 'center' }}>
+                      {m.reason || 'SYSTEM'}
+                   </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 };

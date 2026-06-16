@@ -1,24 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  UserPlus,
-  ArrowLeft,
-  Mail,
-  Phone,
-  Briefcase,
-  User,
-  Fingerprint,
-  Building2,
-  Calendar,
-  CreditCard,
-  Upload,
-  FileImage,
-  Users
+  UserPlus, ArrowLeft, Mail, Phone, Briefcase, User, Fingerprint,
+  Building2, Calendar, CreditCard, FileImage, Users, CheckCircle2, RefreshCw
 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from 'sonner';
 import { userApi } from '../../lib/api';
+
+const fieldClass = 'h-8 px-3 w-full rounded-[4px] border border-slate-200 bg-white text-[11px] font-bold text-slate-800 placeholder:text-slate-400 focus:border-slate-900 focus:ring-0 transition-colors outline-none';
 
 interface AddEmployeeProps {
   onBack: () => void;
@@ -26,42 +14,23 @@ interface AddEmployeeProps {
   employeeId?: number | null;
 }
 
-const fieldClass =
-  'h-10 pl-10 w-full rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 hover:border-slate-300 transition-colors';
-
-interface DocumentUploadProps {
-  label: string;
-  name: string;
-  preview: string | null;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-const DocumentUpload = ({ label, name, preview, onChange }: DocumentUploadProps) => (
-  <div className="space-y-1.5">
-    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{label}</label>
+const DocumentUpload = ({ label, preview, onChange, id }: any) => (
+  <div className="space-y-1">
+    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</label>
     <label
-      htmlFor={name}
-      className={`flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed cursor-pointer transition-colors
-        ${preview ? 'border-slate-300 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+      htmlFor={id}
+      className={`flex flex-col items-center justify-center w-full h-32 rounded-[5px] border border-dashed cursor-pointer transition-all
+        ${preview ? 'border-slate-300 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-400 hover:bg-slate-50'}`}
     >
       {preview ? (
-        <img src={preview} alt={label} className="h-full w-full object-contain rounded-lg p-1" />
+        <img src={preview} alt={label} className="h-full w-full object-contain rounded-[4px] p-2" />
       ) : (
-        <div className="flex flex-col items-center gap-2 text-slate-400">
-          <FileImage className="w-7 h-7" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-center px-2">
-            Click to upload {label}
-          </span>
+        <div className="flex flex-col items-center gap-2 text-slate-300">
+          <FileImage size={24} />
+          <span className="text-[8px] font-black uppercase tracking-widest text-center px-4">Upload Payload</span>
         </div>
       )}
-      <input
-        id={name}
-        name={name}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={onChange}
-      />
+      <input id={id} type="file" accept="image/*" className="hidden" onChange={onChange} />
     </label>
   </div>
 );
@@ -72,7 +41,7 @@ export const AddEmployee = ({ onBack, onSuccess, employeeId }: AddEmployeeProps)
   const [panPreview, setPanPreview]       = useState<string | null>(null);
   const [initialData, setInitialData]     = useState<any>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (employeeId) {
       const fetchEmp = async () => {
         try {
@@ -82,9 +51,7 @@ export const AddEmployee = ({ onBack, onSuccess, employeeId }: AddEmployeeProps)
             setAadharPreview(res.data.aadharCardImage);
             setPanPreview(res.data.panCardImage);
           }
-        } catch (err) {
-          toast.error("Failed to fetch employee details");
-        }
+        } catch (err) { toast.error("Identity Fetch Failure"); }
       };
       fetchEmp();
     }
@@ -93,7 +60,11 @@ export const AddEmployee = ({ onBack, onSuccess, employeeId }: AddEmployeeProps)
   const handleFileChange = (setter: (v: string | null) => void) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) setter(URL.createObjectURL(file));
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => setter(reader.result as string);
+        reader.readAsDataURL(file);
+      }
     };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,7 +74,7 @@ export const AddEmployee = ({ onBack, onSuccess, employeeId }: AddEmployeeProps)
     const payload = {
       fullName: formData.get('name'),
       fathersName: formData.get('fatherName'),
-      employeeId: formData.get('empId'),
+      username: formData.get('empId'),
       designation: formData.get('designation'),
       department: formData.get('department'),
       email: formData.get('email'),
@@ -111,205 +82,138 @@ export const AddEmployee = ({ onBack, onSuccess, employeeId }: AddEmployeeProps)
       joiningDate: formData.get('joiningDate'),
       aadharCardNo: formData.get('aadharNo'),
       panCardNo: formData.get('panNo'),
-      aadharCardImage: aadharPreview, // In a real app, you'd upload files to S3/Cloudinary first
+      aadharCardImage: aadharPreview,
       panCardImage: panPreview,
-      password: 'User@123', // Standard default password
+      password: 'User@123',
     };
 
     try {
-      let response;
-      if (employeeId) {
-        response = await userApi.updateUser(employeeId, payload);
-      } else {
-        response = await userApi.createUser(payload);
-      }
+      const res = employeeId 
+        ? await userApi.updateUser(employeeId, payload)
+        : await userApi.createUser(payload);
       
-      if (response.code === 1) {
-        toast.success(employeeId ? 'Employee updated.' : 'Employee registered.');
+      if (res.code === 1) {
+        toast.success(employeeId ? 'Identity Updated' : 'Identity Registered');
         onSuccess();
       } else {
-        toast.error(response.message || 'Action failed.');
+        toast.error(res.message || 'Operation Denied');
       }
-    } catch (error) {
-      toast.error('Network error.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (err) { toast.error('Communication Link Failure'); }
+    finally { setIsSubmitting(false); }
   };
 
   return (
-    <div className="w-full pb-10">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="group text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-semibold gap-2 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Employee List
-        </Button>
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in bg-white">
+      <div className="page-header shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-1.5 hover:bg-slate-100 rounded-[4px] transition-colors"><ArrowLeft size={14} /></button>
+          <div>
+            <h2 className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">
+               {employeeId ? 'Edit Identity Node' : 'New Identity Registration'}
+            </h2>
+            <p className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.1em]">Personnel Core Configuration Matrix</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+           <button onClick={onBack} className="btn-secondary h-8 px-4 text-[9.5px] rounded-[5px]">Discard</button>
+        </div>
       </div>
 
-      <Card className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden">
-        <CardHeader className="px-8 py-6 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-sm">
-              <UserPlus className="w-5 h-5 text-slate-900" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-bold text-slate-900 tracking-tight">
-                {employeeId ? 'Edit Employee Details' : 'New Employee Registration'}
-              </CardTitle>
-              <CardDescription className="text-sm font-medium text-slate-500 mt-0.5">
-                {employeeId ? 'Update employee professional and KYC records' : 'Fill in professional, contact, and document details'}
-              </CardDescription>
-            </div>
+      <div className="flex-1 overflow-auto p-6 bg-slate-50/20">
+        <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-8">
+          
+          {/* Section: Professional */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 border border-slate-200 rounded-[8px] shadow-sm relative overflow-hidden">
+             <div className="col-span-full border-b border-slate-100 pb-2 mb-2">
+                <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.1em]">Professional & Identity Core</p>
+             </div>
+             
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Full Name</label>
+               <input name="name" defaultValue={initialData?.fullName} required className={fieldClass} placeholder="JOHN DOE" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Father's Name</label>
+               <input name="fatherName" defaultValue={initialData?.fathersName} required className={fieldClass} placeholder="ROBERT DOE" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Employment ID</label>
+               <input name="empId" defaultValue={initialData?.username} required className={fieldClass} placeholder="EMP-101" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Joining Date</label>
+               <input name="joiningDate" type="date" defaultValue={initialData?.joiningDate?.split('T')[0]} required className={fieldClass} />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Designation</label>
+               <input name="designation" defaultValue={initialData?.designation} required className={fieldClass} placeholder="OPS LEAD" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Department</label>
+               <input name="department" defaultValue={initialData?.department} required className={fieldClass} placeholder="LOGISTICS" />
+             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="px-8 py-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Section: Communication & KYC */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 border border-slate-200 rounded-[8px] shadow-sm">
+             <div className="col-span-full border-b border-slate-100 pb-2 mb-2">
+                <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.1em]">Communication Node & Compliance</p>
+             </div>
 
-            {/* ── Row 1: Professional Info ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="name" defaultValue={initialData?.fullName} placeholder="John Doe" required className={fieldClass} />
-                </div>
-              </div>
+             <div className="col-span-2 space-y-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Official Email Matrix</label>
+                <input name="email" type="email" defaultValue={initialData?.email} required className={fieldClass} placeholder="admin@helixion.com" />
+             </div>
+             <div className="col-span-2 space-y-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mobile Link</label>
+                <input name="phone" defaultValue={initialData?.mobileNumber} required className={fieldClass} placeholder="+91 XXXXX XXXXX" />
+             </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Father's Name</label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="fatherName" defaultValue={initialData?.fathersName} placeholder="Robert Doe" required className={fieldClass} />
-                </div>
-              </div>
+             <div className="col-span-2 space-y-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Aadhar Reference Number</label>
+                <input name="aadharNo" defaultValue={initialData?.aadharCardNo} required className={fieldClass} placeholder="XXXX XXXX XXXX" />
+             </div>
+             <div className="col-span-2 space-y-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">PAN Reference Number</label>
+                <input name="panNo" defaultValue={initialData?.panCardNo} required className={`${fieldClass} uppercase`} placeholder="ABCDE1234F" />
+             </div>
+          </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Employee ID</label>
-                <div className="relative">
-                  <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="empId" defaultValue={initialData?.username} placeholder="EMP-101" required className={fieldClass} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Designation</label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="designation" defaultValue={initialData?.designation} placeholder="Operations Lead" required className={fieldClass} />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Row 2: Contact Info ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Department</label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="department" defaultValue={initialData?.department} placeholder="Logistics" required className={fieldClass} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Official Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="email" defaultValue={initialData?.email} type="email" placeholder="john@purvia.com" required className={fieldClass} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Mobile Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="phone" defaultValue={initialData?.mobileNumber} placeholder="+91 XXXXX XXXXX" required className={fieldClass} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Joining Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input name="joiningDate" defaultValue={initialData?.joiningDate ? initialData.joiningDate.split('T')[0] : ''} type="date" required className={fieldClass} />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Row 3: KYC Numbers ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Aadhar Card No.</label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input
-                    name="aadharNo"
-                    defaultValue={initialData?.aadharCardNo}
-                    placeholder="XXXX XXXX XXXX"
-                    maxLength={14}
-                    required
-                    className={fieldClass}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">PAN Card No.</label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <Input
-                    name="panNo"
-                    defaultValue={initialData?.panCardNo}
-                    placeholder="ABCDE1234F"
-                    maxLength={10}
-                    required
-                    className={`${fieldClass} uppercase`}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Row 4: Document Uploads ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <DocumentUpload
-                label="Aadhar Card Image"
-                name="aadharImage"
+          {/* Section: Payload Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <DocumentUpload
+                label="Aadhar Optical Payload"
+                id="aadhar-up"
                 preview={aadharPreview}
                 onChange={handleFileChange(setAadharPreview)}
-              />
-              <DocumentUpload
-                label="PAN Card Image"
-                name="panImage"
+             />
+             <DocumentUpload
+                label="PAN Optical Payload"
+                id="pan-up"
                 preview={panPreview}
                 onChange={handleFileChange(setPanPreview)}
-              />
-            </div>
+             />
+          </div>
 
-            {/* ── Actions ── */}
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-              <Button
+          <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200 pb-10">
+              <button
                 type="button"
-                variant="ghost"
                 onClick={onBack}
-                className="h-10 px-6 rounded-lg text-slate-500 font-semibold text-sm hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                className="h-9 px-6 rounded-[5px] text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 transition-colors"
               >
-                Discard
-              </Button>
-              <Button
+                Discard Identity
+              </button>
+              <button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-10 px-8 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-sm transition-colors active:scale-[0.98] disabled:opacity-50"
+                className="btn-primary h-9 px-10 text-[10px] font-black uppercase rounded-[5px] shadow-lg shadow-primary/20 flex items-center gap-2"
               >
-                {isSubmitting ? 'Saving...' : employeeId ? 'Update Employee' : 'Confirm Registration'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                {employeeId ? 'Apply identity changes' : 'Finalize Registration'}
+              </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

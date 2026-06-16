@@ -1,35 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShoppingCart, 
-  FileText, 
-  Download, 
-  Search, 
-  Plus, 
-  Calendar,
-  ShieldCheck,
-  ShieldAlert,
-  User,
-  ArrowRight
+  FileText, Download, Search, Plus, Calendar, ShieldCheck, ShieldAlert, User, ArrowRight, Loader2, Filter
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
+import { cn } from '@/src/lib/utils';
 import { inventoryApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -37,7 +10,7 @@ import { format } from 'date-fns';
 export const SalesInvoices = () => {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSales();
@@ -47,198 +20,178 @@ export const SalesInvoices = () => {
     try {
       setLoading(true);
       const res = await inventoryApi.getAllSales();
-      if (res.status === 1) {
-        setSales(res.data);
-      } else {
-        toast.error(res.message || "Failed to fetch sales");
-      }
-    } catch (error) {
-      console.error("Error fetching sales:", error);
-      toast.error("An error occurred while fetching sales");
+      if (res.status === 1) setSales(res.data);
+    } catch {
+      toast.error("Failed to fetch sales history");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDownloadInvoice = async (sale: any) => {
+    try {
+      setDownloadingId(sale.id);
+      await inventoryApi.downloadInvoicePdf(
+        sale.id,
+        sale.invoiceNumber || `INV-${sale.id.toString().padStart(4, '0')}`
+      );
+      toast.success('Invoice PDF downloaded!');
+    } catch (e) {
+      toast.error('Failed to download invoice PDF');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const totalRevenue = sales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
-  const activeWarranties = sales.length; // Simplified
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8 custom-scrollbar">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in bg-white">
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center bg-primary/10 rounded-lg w-8 h-8">
+            <FileText size={16} className="text-primary" />
+          </div>
+          <div>
+            <h2 className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">Sales Registry & Invoicing</h2>
+            <p className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.1em]">Revenue Acquisition & Asset Disposal Logs</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="search-bar w-64">
+            <Search size={12} className="text-slate-400" />
+            <input placeholder="Search client name, invoice ID..." className="bg-transparent border-none outline-none text-[10.5px] w-full font-medium" />
+          </div>
+          <button className="btn-secondary h-8 px-4 text-[9.5px] rounded-[5px]"><Filter size={11} /> Filters</button>
+          <button className="btn-primary h-8 px-5 text-[9.5px] rounded-[5px] shadow-lg shadow-primary/20">
+            <Plus size={14} /> New Sales Invoice
+          </button>
+        </div>
+      </div>
+
+      {/* ── Summary Matrix (High Density) ── */}
+      <div className="flex items-center gap-10 px-6 py-3 shrink-0 bg-slate-50/50 border-b border-slate-200">
         <div>
-          <h1 className="text-3xl font-medium text-slate-900 tracking-tight italic uppercase">Sales Acquisition</h1>
-          <p className="text-sm font-normal text-slate-400 uppercase tracking-widest italic">Revenue Extraction & Warranty Matrix</p>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Periodic Growth</p>
+          <p className="text-[14px] font-black text-emerald-600 italic">₹{totalRevenue.toLocaleString()}</p>
         </div>
-        <Dialog open={isNewSaleOpen} onOpenChange={setIsNewSaleOpen}>
-          <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-white font-medium uppercase tracking-widest italic h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95" />}>
-            <Plus className="w-5 h-5 mr-1" />
-            New Sale Invoice
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[700px] rounded-xl border-none shadow-2xl">
-             <DialogHeader>
-               <DialogTitle className="text-xl font-medium italic uppercase tracking-tighter">Acquisition Entry</DialogTitle>
-             </DialogHeader>
-             <div className="grid grid-cols-2 gap-6 py-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-normal text-slate-400 uppercase tracking-widest px-1">Customer Identifier</label>
-                  <Input placeholder="Enter Full Name" className="rounded-xl border-slate-200 bg-slate-50 focus-visible:ring-primary h-12" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-normal text-slate-400 uppercase tracking-widest px-1">Contact Protocol</label>
-                  <Input placeholder="+91 9123456789" className="rounded-xl border-slate-200 bg-slate-50 focus-visible:ring-primary h-12" />
-                </div>
-                <div className="col-span-2 space-y-4 pt-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-[10px] font-medium uppercase tracking-widest text-slate-400 italic">Billable Assets</h4>
-                    <Button variant="ghost" size="sm" className="text-primary font-medium uppercase tracking-widest italic hover:bg-primary/5">+ Add Asset</Button>
+        <div className="w-px h-6 bg-slate-200" />
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Processing Node Count</p>
+          <p className="text-[14px] font-black text-slate-900">{sales.length} <span className="text-[9px] text-slate-400 font-bold">UNITS</span></p>
+        </div>
+        <div className="w-px h-6 bg-slate-200" />
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Outstanding Claims</p>
+          <p className="text-[14px] font-black text-primary">
+            {sales.filter(s => s.paymentStatus !== 'PAID').length}
+          </p>
+        </div>
+        <div className="ml-auto">
+           <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none">REVENUE SERVER ONLINE</span>
+           </div>
+        </div>
+      </div>
+
+      {/* ── Transaction Grid ── */}
+      <div className="flex-1 overflow-auto custom-scrollbar">
+        <table className="erp-table">
+          <thead>
+            <tr>
+              <th className="w-[120px]">Reference ID</th>
+              <th>Customer Engagement / Commercial Node</th>
+              <th className="w-[180px]">Registry Date</th>
+              <th className="w-[160px] text-right">Yield Asset Value</th>
+              <th className="w-[120px] text-center">Settlement</th>
+              <th className="w-[100px] text-center">Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="py-24 text-center">
+                   <div className="flex flex-col items-center gap-3 opacity-40">
+                    <Loader2 size={24} className="animate-spin text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Calibrating Revenue Matrix...</span>
                   </div>
-                  <div className="border border-slate-50 rounded-2xl p-6 bg-slate-100/40 space-y-4">
-                     <div className="flex items-center justify-between text-sm">
-                       <span className="font-normal text-slate-600">Solar Panel 400W (x3)</span>
-                       <span className="font-medium italic text-slate-900 tracking-tighter">₹45,000</span>
-                     </div>
-                     <div className="border-t border-slate-200 pt-4 flex justify-between">
-                       <span className="text-xs font-normal text-slate-400 uppercase tracking-widest">Aggregate Valuation</span>
-                       <span className="text-xl font-medium italic text-slate-900 tracking-tighter">₹45,000</span>
-                     </div>
+                </td>
+              </tr>
+            ) : sales.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-24 text-center">
+                   <div className="flex flex-col items-center gap-2 opacity-20">
+                      <FileText size={32} />
+                      <p className="text-[11px] font-black uppercase tracking-widest">No transaction records found</p>
+                   </div>
+                </td>
+              </tr>
+            ) : sales.map((sale) => (
+              <tr key={sale.id} className="group">
+                <td className="font-mono text-[10px] font-black text-primary italic">
+                  INV-{sale.id.toString().padStart(4, '0')}
+                </td>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-900 rounded-[5px] flex items-center justify-center text-white text-[10px] font-black shadow-lg">
+                      {sale.customerName?.charAt(0) || 'C'}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-none mb-1">{sale.customerName}</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{sale.customerPhone || 'UNREGISTERED'}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="col-span-2 pt-4">
-                   <Button className="w-full h-14 rounded-2xl bg-slate-900 font-medium italic uppercase tracking-widest transition-transform active:scale-95" onClick={() => setIsNewSaleOpen(false)}>Execute Transaction & Sync</Button>
-                </div>
-             </div>
-          </DialogContent>
-        </Dialog>
+                </td>
+                <td className="text-[10px] font-bold text-slate-500 uppercase">
+                  {sale.createdOn ? format(new Date(sale.createdOn), 'dd MMM yyyy, hh:mm a') : 'Temporal Error'}
+                </td>
+                <td className="text-right">
+                   <p className="text-[12px] font-black text-slate-900 italic tracking-tighter">₹{Number(sale.totalAmount || 0).toLocaleString()}</p>
+                   <p className="text-[8px] font-bold text-slate-400 underline decoration-slate-200 underline-offset-2">{sale.items?.length || 0} ASSETS INCLUDED</p>
+                </td>
+                <td className="text-center">
+                   <span className={cn(
+                      "badge inline-flex items-center justify-center px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border min-w-[80px] rounded-[3px]",
+                      sale.paymentStatus === 'PAID' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"
+                   )}>
+                      {sale.paymentStatus === 'PAID' ? 'SECURED' : 'PENDING'}
+                   </span>
+                </td>
+                 <td className="text-center">
+                   <div className="flex items-center justify-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                     <button 
+                       onClick={() => handleDownloadInvoice(sale)}
+                       disabled={downloadingId === sale.id}
+                       className="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-[5px] hover:bg-emerald-600 hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                       title="Download Invoice PDF"
+                     >
+                        {downloadingId === sale.id 
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <Download size={12} />}
+                     </button>
+                     <button className="w-7 h-7 flex items-center justify-center bg-primary text-white border border-primary rounded-[5px] hover:bg-primary/90 transition-all shadow-md shadow-primary/10" title="View Detail Engine">
+                        <ArrowRight size={12} strokeWidth={3} />
+                     </button>
+                   </div>
+                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="rounded-2xl border-none shadow-xl shadow-primary/10 bg-primary group hover:scale-[1.02] transition-all overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12" />
-          <CardContent className="p-6 relative z-10">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-white/60 italic mb-4">Total Revenue Acquisition (MTD)</p>
-            <h3 className="text-4xl font-medium italic tracking-tighter text-white">₹{totalRevenue.toLocaleString()}</h3>
-          </CardContent>
-        </Card>
-        
-        <Card className="rounded-2xl border-none shadow-md shadow-slate-200/40 bg-white group hover:scale-[1.02] transition-all overflow-hidden relative">
-          <CardContent className="p-6">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 italic mb-4">Active Warranty Matrix</p>
-            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-medium italic tracking-tighter text-emerald-600">84</h3>
-              <ShieldCheck className="w-10 h-10 text-emerald-600 opacity-20" />
-            </div>
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-normal text-emerald-600 uppercase italic">
-               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               Assets under protection
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border-none shadow-md shadow-slate-200/40 bg-white group hover:scale-[1.02] transition-all overflow-hidden relative">
-          <CardContent className="p-6">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 italic mb-4">Termination Alerts (30d)</p>
-            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-medium italic tracking-tighter text-primary">12</h3>
-              <ShieldAlert className="w-10 h-10 text-primary opacity-20" />
-            </div>
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-normal text-primary uppercase italic">
-               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-               Approaching Expiry
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:flex gap-4">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-          <Input placeholder="Search invoice, customer or contact protocol..." className="pl-12 h-14 bg-white border-none shadow-sm rounded-2xl focus-visible:ring-primary" />
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="h-14 px-6 rounded-2xl border-none bg-white shadow-sm font-normal uppercase text-xs text-slate-400 hover:text-primary group">
-            <Calendar className="w-4 h-4 mr-2" />
-            Date Scope
-          </Button>
-          <Button variant="outline" className="h-14 px-6 rounded-2xl border-none bg-white shadow-sm font-normal uppercase text-xs text-slate-400 hover:text-primary group">
-            <Download className="w-4 h-4 mr-2" />
-            Extract Data
-          </Button>
-        </div>
-      </div>
-
-      <Card className="rounded-2xl border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden">
-        <Table>
-          <TableHeader className="bg-slate-100/40">
-            <TableRow className="hover:bg-transparent border-b border-slate-50">
-              <TableHead className="h-16 px-8 text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Invoice Identifier</TableHead>
-              <TableHead className="h-16 px-8 text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Asset Occupant</TableHead>
-              <TableHead className="h-16 px-8 text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Registry Date</TableHead>
-              <TableHead className="h-16 px-8 text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Acquisition Value</TableHead>
-              <TableHead className="h-16 px-8 text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Protection Index</TableHead>
-              <TableHead className="h-16 px-8 text-right text-[11px] font-medium uppercase text-slate-400 tracking-widest italic">Ops</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-             {loading ? (
-               <TableRow>
-                 <TableCell colSpan={6} className="h-32 text-center text-slate-400 uppercase tracking-widest text-[10px] italic">
-                   Extracting acquisition records...
-                 </TableCell>
-               </TableRow>
-             ) : sales.length === 0 ? (
-               <TableRow>
-                 <TableCell colSpan={6} className="h-32 text-center text-slate-400 uppercase tracking-widest text-[10px] italic">
-                   No transactions recorded in current matrix
-                 </TableCell>
-               </TableRow>
-             ) : sales.map((sale) => (
-               <TableRow key={sale.id} className="group hover:bg-slate-100/40 border-b border-slate-50/50 transition-all">
-                 <TableCell className="px-8 py-6 font-mono font-medium italic text-primary tracking-tighter">[{sale.id}]</TableCell>
-                 <TableCell className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 shadow-inner">
-                        <User className="w-4 h-4 text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="font-normal text-slate-900">{sale.customerName}</p>
-                        <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-tighter">{sale.customerPhone}</p>
-                      </div>
-                    </div>
-                 </TableCell>
-                 <TableCell className="px-8 py-6 text-xs font-normal text-slate-500 italic">
-                   {sale.createdOn ? format(new Date(sale.createdOn), 'dd MMM yyyy') : 'N/A'}
-                 </TableCell>
-                 <TableCell className="px-8 py-6">
-                    <p className="text-lg font-medium italic tracking-tighter text-slate-900">₹{sale.totalAmount?.toLocaleString()}</p>
-                    <p className="text-[10px] font-normal text-slate-400 uppercase italic tracking-widest">{sale.items?.length || 0} Assets</p>
-                 </TableCell>
-                 <TableCell className="px-8 py-6">
-                    <div className="flex items-center gap-1.5">
-                      {sale.paymentStatus === 'PAID' ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-medium uppercase italic">Secured</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 text-slate-400 rounded-lg border border-slate-200">
-                          <ShieldAlert className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-medium uppercase italic">Pending</span>
-                        </div>
-                      )}
-                    </div>
-                 </TableCell>
-                 <TableCell className="px-8 py-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-white hover:text-primary transition-all border border-transparent hover:border-slate-200"><Download className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-white hover:text-primary transition-all border border-transparent hover:border-slate-200"><ArrowRight className="w-4 h-4" /></Button>
-                    </div>
-                 </TableCell>
-               </TableRow>
-             ))}
-          </TableBody>
-        </Table>
-      </Card>
+       {/* ── Fixed Footer Pagination ── */}
+       <div className="h-[42px] px-6 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+             Operations Matrix — Node 1-{sales.length} of {sales.length} Verified Records
+          </p>
+          <div className="flex items-center gap-1.5">
+             <button className="h-6 px-3 text-[9px] font-black uppercase rounded-[5px] bg-slate-900 text-white shadow-lg shadow-slate-900/20">1</button>
+          </div>
+       </div>
     </div>
   );
 };

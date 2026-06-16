@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/src/lib/utils';
-import { salesApi } from '@/src/lib/api';
+import { salesApi, inventoryApi } from '@/src/lib/api';
 import { AddCustomerForm } from './AddCustomerForm';
 
 const PipelineView = () => (
@@ -74,26 +74,46 @@ export const CRMModule = () => {
   const [activeView, setActiveView] = useState('database');
   const [isAdding, setIsAdding] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
+  const [estimates, setEstimates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await salesApi.getAllCustomers();
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching customers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCustomers();
+    fetchData();
   }, []);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [custRes, salesRes, estRes] = await Promise.all([
+        salesApi.getAllCustomers(),
+        inventoryApi.getAllSales(),
+        salesApi.getAllEstimates()
+      ]);
+      
+      if (custRes.status === 1) setCustomers(custRes.data);
+      if (salesRes.status === 1) setSales(salesRes.data || []);
+      if (estRes.status === 1) setEstimates(estRes.data || []);
+
+    } catch (error) {
+      console.error('Error fetching CRM data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCustomerMetrics = (customerName: string) => {
+    const custSales = sales.filter(s => s.customerName === customerName);
+    const custEsts = estimates.filter(e => e.customerName === customerName);
+    return {
+      invoices: custSales.length,
+      estimates: custEsts.length,
+      totalValue: custSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0)
+    };
+  };
+
   const renderViewContent = () => {
-    if (isAdding) return <AddCustomerForm onCancel={() => setIsAdding(false)} />;
+    if (isAdding) return <AddCustomerForm onCancel={() => { setIsAdding(false); fetchData(); }} />;
 
     switch (activeView) {
       case 'database':
@@ -123,41 +143,49 @@ export const CRMModule = () => {
                    <div className="p-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
                       No active customer profiles found
                    </div>
-                ) : customers.map((c) => (
-                   <div key={c.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                      <div className="flex items-center gap-5">
-                         <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-primary group-hover:text-white transition-all">
-                            {c.name?.[0] || 'U'}
-                         </div>
-                         <div>
-                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{c.name}</h4>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.companyName || 'Individual'}</p>
-                         </div>
-                      </div>
+                ) : customers.map((c) => {
+                   const metrics = getCustomerMetrics(c.name);
+                   return (
+                    <div key={c.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-primary group-hover:text-white transition-all">
+                              {c.name?.[0] || 'U'}
+                          </div>
+                          <div>
+                              <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{c.name}</h4>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.phone}</p>
+                          </div>
+                        </div>
 
-                      <div className="hidden lg:flex items-center gap-12">
-                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Status</p>
-                            <span className={cn(
-                               "px-2 py-0.5 rounded text-[8px] font-black uppercase border",
-                               c.status === 'Hot Lead' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            )}>Active Client</span>
-                         </div>
-                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Deal Value</p>
-                            <p className="text-xs font-black text-slate-900">₹4.5L</p>
-                         </div>
-                         <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-primary/5 hover:text-primary rounded-xl text-slate-300 transition-colors"><Phone className="w-4 h-4" /></button>
-                            <button className="p-2 hover:bg-primary/5 hover:text-primary rounded-xl text-slate-300 transition-colors"><MessageSquare className="w-4 h-4" /></button>
-                         </div>
-                      </div>
+                        <div className="hidden lg:flex items-center gap-12">
+                          <div className="text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Invoices</p>
+                              <span className="px-2 py-0.5 rounded-[5px] bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100">
+                                {metrics.invoices}
+                              </span>
+                          </div>
+                          <div className="text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Estimates</p>
+                              <span className="px-2 py-0.5 rounded-[5px] bg-blue-50 text-blue-600 text-[10px] font-black border border-blue-100">
+                                {metrics.estimates}
+                              </span>
+                          </div>
+                          <div className="text-right min-w-[100px]">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Total Billing</p>
+                              <p className="text-xs font-black text-slate-900 font-mono">₹{metrics.totalValue.toLocaleString()}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <button className="p-2 hover:bg-primary/5 hover:text-primary rounded-xl text-slate-300 transition-colors"><Phone className="w-4 h-4" /></button>
+                              <button className="p-2 hover:bg-primary/5 hover:text-primary rounded-xl text-slate-300 transition-colors"><MessageSquare className="w-4 h-4" /></button>
+                          </div>
+                        </div>
 
-                      <button className="p-2 hover:bg-slate-100 rounded-xl text-slate-300">
-                         <MoreVertical className="w-5 h-5" />
-                      </button>
-                   </div>
-                ))}
+                        <button className="p-2 hover:bg-slate-100 rounded-xl text-slate-300">
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                    </div>
+                   )
+                })}
              </div>
           </div>
         );
@@ -202,9 +230,9 @@ export const CRMModule = () => {
          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
                { label: 'Active Clients', value: customers.length.toString(), color: 'slate', icon: Users },
-               { label: 'Won Deals', value: '₹1.2Cr', color: 'emerald', icon: ArrowUpRight },
-               { label: 'Conversion', value: '24%', color: 'indigo', icon: Target },
-               { label: 'Lost Deals', value: '₹8.4L', color: 'rose', icon: MessageSquare }
+               { label: 'Total Revenue', value: `₹${(sales.reduce((acc,s)=>acc+(s.totalAmount||0),0)/100000).toFixed(1)}L`, color: 'emerald', icon: ArrowUpRight },
+               { label: 'Invoices Issued', value: sales.length.toString(), color: 'indigo', icon: Receipt },
+               { label: 'Total Estimates', value: estimates.length.toString(), color: 'rose', icon: MessageSquare }
             ].map((kpi, i) => (
                <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all cursor-pointer">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>

@@ -56,44 +56,10 @@ export const LedgerEngine = ({ initialTab }: LedgerEngineProps) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC]">
-      {/* ── Sub Navigation ────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-2 shrink-0">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
-          {[
-            { id: 'accounts', label: 'Bank & Cash Master', icon: CreditCard },
-            { id: 'ledger', label: 'Other Account Masters', icon: BookOpen },
-            { id: 'vouchers', label: 'Voucher (Ledger) Entry', icon: ArrowRightLeft },
-            { id: 'daybook', label: 'Day Book (Entries)', icon: History },
-            { id: 'cashbook', label: 'Cash/Bank Book', icon: Banknote },
-            { id: 'expenses', label: 'Expenses', icon: TrendingDown },
-            { id: 'income', label: 'Income', icon: TrendingUp },
-            { id: 'trial-balance', label: 'Trial Balance', icon: Filter },
-            { id: 'profit-loss', label: 'Profit & Loss', icon: PieChart },
-            { id: 'balance-sheet', label: 'Balance Sheet', icon: CircleDollarSign },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as AccountingTab)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all",
-                activeTab === tab.id 
-                  ? "bg-primary/5 text-primary font-bold shadow-[inset_0_0_0_1px_rgba(203,12,31,0.1)]" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.id ? "text-primary" : "text-slate-400")} />
-              <span className="text-[10px] uppercase font-bold tracking-tight">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: '#F8FAFC' }}>
       {/* ── Main Content Area ──────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 lg:p-4">
-        <div className="w-full mx-auto">
-          {renderContent()}
-        </div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {renderContent()}
       </div>
     </div>
   );

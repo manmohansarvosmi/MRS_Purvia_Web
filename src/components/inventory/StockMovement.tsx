@@ -1,22 +1,7 @@
 import React from 'react';
 import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Package, 
-  User, 
-  Clock, 
-  Search,
-  Filter,
-  History,
-  Activity,
-  Box,
-  Truck
+  ArrowUpRight, ArrowDownRight, Package, User, Clock, Search, Filter, Activity, Box, Download, MoreVertical, Loader2
 } from 'lucide-react';
-import { motion } from 'motion/react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/src/lib/utils";
 
 const MOCK_MOVEMENTS = [
@@ -29,122 +14,98 @@ const MOCK_MOVEMENTS = [
 
 export const StockMovement = () => {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-slate-100/40">
-      {/* Header & Controls */}
-      <div className="p-6 lg:p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 bg-white">
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in" style={{ background: '#fff' }}>
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0">
         <div>
-          <h2 className="text-xl font-normal uppercase tracking-tight text-slate-900 flex items-center gap-3">
-            <Activity className="w-5 h-5 text-primary" />
-            Asset Movement Log
-          </h2>
-          <p className="text-[10px] font-normal text-slate-400 uppercase tracking-widest mt-1">Real-time Stock Displacement Archives</p>
+          <h2>Movement History</h2>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>Live Asset Displacement & Flow Audit</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
-            <Input 
-              placeholder="Search movement ID, asset or person..." 
-              className="pl-9 h-10 w-64 bg-slate-50 border-none text-xs font-normal rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
-            />
+        <div className="flex items-center gap-2">
+          <div className="search-bar">
+            <Search />
+            <input placeholder="Search asset or person..." style={{ width: 220 }} />
           </div>
-          <Button variant="outline" className="h-10 rounded-lg border-slate-200 text-[10px] font-normal uppercase tracking-widest px-4 hover:bg-slate-50">
-            <Filter className="w-3.5 h-3.5 mr-2" />
-            Filter Data
-          </Button>
+          <button className="btn-secondary"><Filter size={12} /> Filter</button>
+          <button className="btn-secondary"><Download size={12} /> export</button>
         </div>
       </div>
 
-      {/* Movement Timeline */}
-      <div className="flex-1 overflow-y-auto p-6 lg:p-6 custom-scrollbar">
-        <div className="max-w-5xl mx-auto">
-          <div className="relative">
-            {/* Vertical Line */}
-            <div className="absolute left-[21px] top-4 bottom-4 w-px bg-slate-200" />
+      {/* ── Stats Bar ── */}
+      <div className="flex items-center gap-10 px-5 py-3 shrink-0" style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+        <div>
+          <p className="erp-label !mb-1">Last 24h Activity</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{MOCK_MOVEMENTS.length} Movements</p>
+        </div>
+        <div>
+          <p className="erp-label !mb-1">Active Transfers</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>02 Pending</p>
+        </div>
+      </div>
 
-            <div className="space-y-8">
-              {MOCK_MOVEMENTS.map((mov, index) => (
-                <motion.div
-                  key={mov.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative pl-14"
-                >
-                  {/* Icon Node */}
-                  <div className={cn(
-                    "absolute left-0 top-0 w-11 h-11 rounded-2xl flex items-center justify-center border-4 border-[#F8FAFC] z-10 transition-transform hover:scale-110",
-                    mov.type === 'in' ? "bg-emerald-500 shadow-lg shadow-emerald-500/20" : "bg-primary shadow-lg shadow-primary/20"
-                  )}>
-                    {mov.type === 'in' ? (
-                      <ArrowDownRight className="w-5 h-5 text-white" />
-                    ) : (
-                      <ArrowUpRight className="w-5 h-5 text-white" />
-                    )}
+      {/* ── Data Grid ── */}
+      <div className="flex-1 overflow-auto">
+        <table className="erp-table">
+          <thead>
+            <tr>
+              <th style={{ width: 100 }}>Log SID</th>
+              <th>Asset Information</th>
+              <th style={{ width: 140, textAlign: 'center' }}>Direction</th>
+              <th style={{ width: 120, textAlign: 'right' }}>Magnitude</th>
+              <th>Personnel / Handler</th>
+              <th>Temporal Log</th>
+              <th style={{ width: 50 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {MOCK_MOVEMENTS.map((mov) => (
+              <tr key={mov.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#111827', fontWeight: 600 }}>{mov.id}</td>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 bg-slate-900 rounded flex items-center justify-center text-white">
+                      <Box size={14} />
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 600, color: '#111827', fontSize: 12 }}>{mov.product}</p>
+                      <p style={{ fontSize: 10, color: '#9CA3AF' }}>{mov.reason}</p>
+                    </div>
                   </div>
-
-                  {/* Card Content */}
-                  <Card className="border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden bg-white group">
-                    <CardContent className="p-0">
-                      <div className="flex flex-col md:flex-row">
-                        {/* Status Strip */}
-                        <div className={cn(
-                          "w-full md:w-1 h-1 md:h-auto",
-                          mov.type === 'in' ? "bg-emerald-500" : "bg-primary"
-                        )} />
-                        
-                        <div className="flex-1 p-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                              <Box className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-normal text-slate-900 uppercase tracking-tight">{mov.product}</h4>
-                                <Badge variant="outline" className={cn(
-                                  "text-[8px] font-normal uppercase tracking-tighter rounded-md",
-                                  mov.type === 'in' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-primary border-red-100"
-                                )}>
-                                  {mov.type === 'in' ? 'INFLOW' : 'OUTFLOW'}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1 uppercase tracking-widest">
-                                  <Clock className="w-3 h-3" /> {mov.time}
-                                </span>
-                                <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1 uppercase tracking-widest">
-                                  <User className="w-3 h-3" /> {mov.person}
-                                </span>
-                                <span className="text-[10px] font-mono font-normal text-slate-400 px-2 py-0.5 bg-slate-50 rounded border border-slate-200">
-                                  {mov.id}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col md:items-end gap-1">
-                            <div className="flex items-baseline gap-2">
-                              <span className={cn(
-                                "text-xl font-normal tracking-tight",
-                                mov.type === 'in' ? "text-emerald-600" : "text-primary"
-                              )}>
-                                {mov.type === 'in' ? '+' : '-'}{mov.qty}
-                              </span>
-                              <span className="text-[9px] font-normal text-slate-400 uppercase">Units</span>
-                            </div>
-                            <p className="text-[10px] font-medium text-slate-400 max-w-[200px] md:text-right leading-tight">
-                              {mov.reason}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
+                </td>
+                <td>
+                   <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <span className={cn(
+                      "badge",
+                      mov.type === 'in' ? "badge-success" : "badge-danger"
+                    )} style={{ width: 80, justifyContent: 'center' }}>
+                        {mov.type === 'in' ? 'INFLOW' : 'OUTFLOW'}
+                    </span>
+                   </div>
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 13, color: mov.type === 'in' ? '#059669' : '#DC2626' }}>
+                   {mov.type === 'in' ? '+' : '-'}{mov.qty}
+                   <span style={{ fontSize: 10, marginLeft: 2, fontWeight: 500, color: '#9CA3AF' }}>PCS</span>
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <User size={12} className="text-slate-400" />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#4B5563' }}>{mov.person}</span>
+                  </div>
+                </td>
+                <td style={{ fontSize: 11, color: '#9CA3AF' }}>
+                   <p style={{ color: '#111827', fontWeight: 500 }}>{new Date(mov.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                   <p>{mov.time}</p>
+                </td>
+                <td style={{ textAlign: 'center' }}>
+                  <button className="btn-ghost"><MoreVertical size={13} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
     </div>
   );
 };

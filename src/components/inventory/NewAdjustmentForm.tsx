@@ -30,197 +30,138 @@ export const NewAdjustmentForm = ({ onCancel }: { onCancel: () => void }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-100/40 overflow-hidden">
-
-      {/* ── Top Bar ── */}
-      <div className="bg-white border-b border-slate-200 px-8 py-3.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onCancel}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-700 transition-colors group text-[11px] font-medium uppercase tracking-widest"
-          >
-            <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-all">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            Back
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in" style={{ background: '#F8FAFC' }}>
+      
+      {/* ── Header ── */}
+      <div className="page-header shrink-0 shadow-sm z-10">
+        <div className="flex items-center gap-3">
+          <button onClick={onCancel} className="btn-ghost !p-1.5 hover:bg-slate-100 rounded-[5px]" title="Go Back">
+            <ArrowLeft size={16} className="text-slate-600" />
           </button>
-          <div className="w-px h-8 bg-slate-200" />
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Settings2 className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-tight">New Stock Adjustment</h2>
-              <p className="text-[10px] font-normal text-slate-400 uppercase tracking-widest">Correct physical stock discrepancies</p>
-            </div>
+          <div className="h-6 w-[1px] bg-slate-200 mx-1" />
+          <div>
+            <h2 className="text-[11px] font-bold text-slate-900 tracking-tight uppercase">New Stock Adjustment</h2>
+            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mt-0.5">Physical Stock Reconciliation</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onCancel}
-            className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-[11px] font-medium uppercase tracking-widest hover:bg-slate-50 transition-all"
-          >
-            Discard
-          </button>
-          <button
-            onClick={handleSave}
+        <div className="flex items-center gap-2">
+          <button className="btn-secondary h-7 px-3 text-[10px]" onClick={onCancel}>Discard</button>
+          <button 
             className={cn(
-              "px-6 py-2.5 rounded-xl text-white text-[11px] font-medium uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg",
-              saved
-                ? "bg-emerald-500 shadow-emerald-200"
-                : "bg-primary shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02]"
+              "btn-primary h-7 px-4 text-[10px] shadow-sm",
+              saved ? "bg-emerald-500 hover:bg-emerald-600" : ""
             )}
+            onClick={handleSave}
           >
-            {saved
-              ? <><CheckCircle2 className="w-4 h-4" /> Applied!</>
-              : <><Save className="w-4 h-4" /> Apply Adjustment</>
-            }
+            {saved ? <CheckCircle2 size={12} /> : <Save size={12} />}
+            {saved ? "Applied" : "Apply Adjustment"}
           </button>
         </div>
       </div>
 
-      {/* ── Form Body with Margin & Card ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-        <div className="max-w-5xl mx-auto space-y-8">
+      {/* ── Form Body ── */}
+      <div className="flex-1 overflow-auto p-4 custom-scrollbar">
+        <div className="space-y-4 pb-12">
           
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
-            
-            {/* Adjustment Type Selector */}
-            <div className="p-6 border-b border-slate-50">
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em] mb-6">Adjustment Type</p>
-              <div className="grid grid-cols-2 gap-6">
-                <button
-                  onClick={() => setAdjustType('addition')}
-                  className={cn(
-                    "flex items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left",
-                    adjustType === 'addition'
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-700 shadow-lg shadow-emerald-500/10"
-                      : "border-slate-100 bg-slate-50 text-slate-500 hover:border-emerald-200 hover:bg-emerald-50/30"
-                  )}
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
-                    adjustType === 'addition' ? "bg-white text-emerald-500" : "bg-slate-100"
-                  )}>
-                    <ArrowUpRight className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-widest">Addition</p>
-                    <p className="text-[10px] font-normal mt-1 opacity-70 italic">Increase stock total (+)</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setAdjustType('deduction')}
-                  className={cn(
-                    "flex items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left",
-                    adjustType === 'deduction'
-                      ? "border-rose-400 bg-rose-50 text-rose-700 shadow-lg shadow-rose-500/10"
-                      : "border-slate-100 bg-slate-50 text-slate-500 hover:border-rose-200 hover:bg-rose-50/30"
-                  )}
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
-                    adjustType === 'deduction' ? "bg-white text-rose-500" : "bg-slate-100"
-                  )}>
-                    <ArrowDownRight className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-widest">Deduction</p>
-                    <p className="text-[10px] font-normal mt-1 opacity-70 italic">Decrease stock total (-)</p>
-                  </div>
-                </button>
-              </div>
+          {/* Adjustment Type Selector */}
+          <div className="bg-white border border-slate-200 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <Settings2 size={12} className="text-slate-400" />
+              <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Adjustment Protocol</h3>
             </div>
-
-            {/* Product & Quantity */}
-            <div className="p-6 space-y-8 bg-white">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-4">Discrepancy Details</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-widest">
-                    <Package className="w-3.5 h-3.5" /> Select Item <span className="text-primary">*</span>
-                  </label>
-                  <div className="relative">
-                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                    <input
-                      type="text"
-                      placeholder="Enter Item Name or SKU..."
-                      className={cn(inputClass, "pl-11")}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-widest">
-                    <Hash className="w-3.5 h-3.5" /> Adjustment Quantity <span className="text-primary">*</span>
-                  </label>
-                  <input type="number" min="1" placeholder="0 Units" className={inputClass} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-widest">
-                    <Warehouse className="w-3.5 h-3.5" /> Warehouse Unit
-                  </label>
-                  <div className="relative">
-                    <select className={selectClass}>
-                      <option value="">Select Warehouse</option>
-                      <option>Main Hub — Gwalior HQ</option>
-                      <option>Secondary — Branch Store</option>
-                      <option>Transit Depot</option>
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-widest">
-                    <Calendar className="w-3.5 h-3.5" /> Date of Adjustment
-                  </label>
-                  <input type="date" className={inputClass} defaultValue={new Date().toISOString().split('T')[0]} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-widest">
-                  <FileText className="w-3.5 h-3.5" /> Reason & Internal Remarks <span className="text-primary">*</span>
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Provide detailed context for this adjustment..."
-                  className={cn(inputClass, "resize-none leading-relaxed")}
-                />
-              </div>
-            </div>
-
-            {/* Warning Banner */}
-            <div className="bg-amber-50/50 border-t border-amber-100 px-8 py-6 flex items-start gap-4">
-              <AlertTriangle className="w-5 h-5 text-amber-500 mt-1 shrink-0" />
-              <p className="text-[11px] font-normal text-amber-800 leading-relaxed italic">
-                <strong>Attention:</strong> These changes are logged permanently in the Movement Registry. Please verify the actual physical stock levels before committing the adjustment to avoid inventory drift.
-              </p>
-            </div>
-
-            {/* Footer Action */}
-            <div className="p-6 bg-slate-50/50 border-t border-slate-200 flex justify-end gap-3">
+            <div className="p-4 grid grid-cols-2 gap-4">
               <button
-                onClick={onCancel}
-                className="px-6 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl text-[11px] font-medium uppercase tracking-widest hover:bg-slate-100 transition-all font-mono"
-              >
-                Abort
-              </button>
-              <button
-                onClick={handleSave}
+                onClick={() => setAdjustType('addition')}
                 className={cn(
-                  "px-8 py-3 rounded-xl text-white text-[11px] font-medium uppercase tracking-widest shadow-lg transition-all",
-                  saved ? "bg-emerald-500" : "bg-slate-900 hover:bg-slate-800"
+                  "flex items-center gap-3 p-4 rounded-[5px] border transition-all text-left",
+                  adjustType === 'addition'
+                    ? "border-emerald-200 bg-emerald-50/50 text-emerald-800 ring-1 ring-emerald-200"
+                    : "border-slate-100 bg-slate-50/50 text-slate-500 hover:border-slate-300"
                 )}
               >
-                {saved ? "Adjustment Applied Successfully" : "Apply to Ledger"}
+                <div className={cn(
+                  "w-8 h-8 rounded-[5px] flex items-center justify-center shrink-0 shadow-sm",
+                  adjustType === 'addition' ? "bg-white text-emerald-500" : "bg-slate-200/50"
+                )}>
+                  <ArrowUpRight size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Addition (+)</p>
+                  <p className="text-[9px] font-medium opacity-60">Increase stock total</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setAdjustType('deduction')}
+                className={cn(
+                  "flex items-center gap-3 p-4 rounded-[5px] border transition-all text-left",
+                  adjustType === 'deduction'
+                    ? "border-rose-200 bg-rose-50/50 text-rose-800 ring-1 ring-rose-200"
+                    : "border-slate-100 bg-slate-50/50 text-slate-500 hover:border-slate-300"
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-[5px] flex items-center justify-center shrink-0 shadow-sm",
+                  adjustType === 'deduction' ? "bg-white text-rose-500" : "bg-slate-200/50"
+                )}>
+                  <ArrowDownRight size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Deduction (-)</p>
+                  <p className="text-[9px] font-medium opacity-60">Decrease stock total</p>
+                </div>
               </button>
             </div>
           </div>
+
+          {/* Discrepancy Details */}
+          <div className="bg-white border border-slate-200 rounded-[5px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <Package size={12} className="text-slate-400" />
+              <h3 className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Discrepancy Details</h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="col-span-2 md:col-span-1">
+                <label className="erp-label">Select Item *</label>
+                <div className="relative">
+                  <input type="text" placeholder="Search by name or SKU..." className="erp-input h-8 pl-8" />
+                  <Package size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+              <div>
+                <label className="erp-label">Adjustment Quantity *</label>
+                <input type="number" min="1" placeholder="0 Units" className="erp-input h-8 font-bold" />
+              </div>
+              <div>
+                <label className="erp-label">Warehouse Unit</label>
+                <select className="erp-select h-8">
+                  <option value="">Select Warehouse</option>
+                  <option>Main Hub — Gwalior HQ</option>
+                  <option>Secondary — Branch Store</option>
+                </select>
+              </div>
+              <div>
+                <label className="erp-label">Date of Adjustment</label>
+                <input type="date" className="erp-input h-8" defaultValue={new Date().toISOString().split('T')[0]} />
+              </div>
+              <div className="col-span-2">
+                <label className="erp-label">Reason & Internal Remarks *</label>
+                <textarea
+                  rows={3}
+                  placeholder="Provide context for this stock adjustment (e.g. Damage, Miscount, Theft)..."
+                  className="erp-input !h-auto py-2 focus:border-slate-400 transition-all font-sans italic"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Warning Banner */}
+          <div className="bg-amber-50 border border-amber-100 rounded-[5px] px-4 py-3 flex items-start gap-3">
+            <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-[10px] font-medium text-amber-800 leading-relaxed italic">
+              <strong>Audit Notice:</strong> These changes are logged permanently in the Movement Registry. Please verify the actual physical stock levels before committing the adjustment to avoid inventory drift.
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

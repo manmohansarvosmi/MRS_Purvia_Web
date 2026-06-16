@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, ChevronRight, Fingerprint, ShieldCheck } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Mail, Lock, User, ChevronRight, Fingerprint, ShieldCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '../../assets/mrs_logo.png';
-
 import api from '@/src/lib/api';
 
 interface LoginPageProps {
@@ -22,127 +19,126 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
     setIsLoading(true);
 
     try {
-      // API Integration using axios instance
       const response = await api.post('/auth/login', { username, password });
       const data = response.data;
-
-      // Handle both standard and BaseResponse structures
       const token = data.data?.token || data.token;
 
       if (token) {
         localStorage.setItem('userToken', token);
-        toast.success('LOGIN SUCCESSFUL', {
-          description: 'Welcome back to Purvia ERP.',
-        });
+        toast.success('AUTHENTICATION SUCCESSFUL');
         onLogin(token);
       } else {
-        toast.error('AUTH ERROR', {
-          description: 'Token not found in server response.',
-        });
+        toast.error('AUTH ERROR: Token not found');
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Invalid username or password.';
-      toast.error('LOGIN FAILED', {
-        description: errorMessage,
-      });
+      const errorMessage = error.response?.data?.message || 'Invalid credentials.';
+      toast.error('ACCESS DENIED', { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 overflow-hidden relative">
-      {/* Background Refinements */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[140px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[140px]" />
-      <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-amber-500/5 rounded-full blur-[100px]" />
+    <div className="min-h-screen flex items-center justify-center p-6 relative" style={{ background: '#EAECF0' }}>
+      
+      {/* ── Background Branding ── */}
+      <div className="absolute top-0 right-0 p-8">
+        <p style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+          Purvia ERP • v4.0.0
+        </p>
+      </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[440px] relative z-10"
+        className="w-full max-w-[400px] relative z-10"
       >
-        <div className="text-center mb-10">
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-slate-200 mb-6 border border-slate-50 overflow-hidden"
-          >
-            <img src={logo} alt="MRS Logo" className="w-full h-full object-contain p-2" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">
-            MRS <span className="text-primary">PURVIA</span>
+        {/* Logo Container */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-16 h-16 bg-white border border-slate-200 mb-6 flex items-center justify-center shadow-sm" style={{ borderRadius: 4 }}>
+            <img src={logo} alt="MRS Logo" className="w-10 h-10 object-contain" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+            MRS <span style={{ color: '#C8102E' }}>PURVIA</span>
           </h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Enterprise Management System
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.15em', marginTop: 4 }}>
+            Enterprise Systems Access
           </p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl shadow-slate-200/50 border border-white">
+        {/* Login Panel */}
+        <div className="bg-white border border-slate-200 shadow-2xl p-8" style={{ borderRadius: 4 }}>
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Personnel Login</h2>
-            <p className="text-xs font-medium text-slate-500 mt-1">Please enter your credentials to continue</p>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: '#1E2330', textTransform: 'uppercase' }}>Personnel Sign In</h2>
+            <div className="h-0.5 w-8 bg-primary mt-2" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
-                <User className="w-3.5 h-3.5" /> Username
-              </label>
-              <Input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-primary font-medium transition-all"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                  <Lock className="w-3.5 h-3.5" /> Password
-                </label>
-                <button type="button" className="text-[10px] font-bold text-primary uppercase hover:underline">Forgot?</button>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="erp-label">Control Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin@mrs"
+                  className="erp-input !pl-9"
+                  required
+                  autoFocus
+                />
               </div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-primary font-medium transition-all"
-                required
-              />
             </div>
 
-            <Button 
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="erp-label">Access Password</label>
+                <button type="button" style={{ fontSize: 9, fontWeight: 700, color: '#C8102E', textTransform: 'uppercase' }} className="hover:underline">Recovery</button>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="erp-input !pl-9"
+                  required
+                />
+              </div>
+            </div>
+
+            <button 
               type="submit"
               disabled={isLoading}
-              className="w-full h-14 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold uppercase tracking-widest shadow-xl transition-all active:scale-[0.98]"
+              className="btn-primary w-full h-11 flex justify-center items-center gap-2"
+              style={{ fontSize: 11, letterSpacing: '0.05em' }}
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
-                <span className="flex items-center gap-2">
-                  Login to ERP <ChevronRight className="w-4 h-4" />
-                </span>
+                <>SIGN IN TO GATEWAY <ChevronRight size={14} /></>
               )}
-            </Button>
+            </button>
           </form>
 
-          <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between text-slate-400">
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Fingerprint className="w-4 h-4" />
-              <span className="text-[9px] font-bold uppercase tracking-widest">Biometric Ready</span>
+               <ShieldCheck size={14} className="text-emerald-500" />
+               <span style={{ fontSize: 9, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>Secure Access</span>
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-widest">Secured Access</span>
+            <Fingerprint size={16} className="text-slate-200" />
           </div>
         </div>
 
-        <p className="text-center mt-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          Authorized Personnel Only
-        </p>
+        <div className="mt-10 text-center">
+            <p style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, letterSpacing: '0.05em' }}>
+                CORPORATE ERP INFRASTRUCTURE
+            </p>
+            <p style={{ fontSize: 9, color: '#CBD5E1', marginTop: 4 }}>
+                Unauthorized attempts will be logged and reported.
+            </p>
+        </div>
       </motion.div>
     </div>
   );

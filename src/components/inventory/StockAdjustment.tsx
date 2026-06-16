@@ -1,25 +1,16 @@
 import React from 'react';
 import { 
-  Settings2, 
-  Plus, 
-  Search, 
-  Filter, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  AlertCircle,
-  MoreVertical,
-  ChevronRight,
-  ClipboardList
+  Settings2, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, MoreVertical, ClipboardList
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { NewAdjustmentForm } from './NewAdjustmentForm';
 
 const adjustments = [
-  { id: 'ADJ-992', item: 'Solar Panel 450W Mono', sku: 'SP-450-MO', qty: -2,  reason: 'Damaged in transit',           date: 'Today, 11:20 AM',    warehouse: 'Main Hub',  type: 'Deduction' },
-  { id: 'ADJ-991', item: 'MC4 Connector Pair',   sku: 'MC4-MF-01', qty: 100, reason: 'Physical audit correction',    date: 'Yesterday, 3:45 PM', warehouse: 'Main Hub',  type: 'Addition'  },
+  { id: 'ADJ-992', item: 'Solar Panel 450W Mono', sku: 'SP-450-MO', qty: -2,  reason: 'Damaged in transit',           date: '25 May, 11:20 AM',    warehouse: 'Main Hub',  type: 'Deduction' },
+  { id: 'ADJ-991', item: 'MC4 Connector Pair',   sku: 'MC4-MF-01', qty: 100, reason: 'Physical audit correction',    date: '24 May, 03:45 PM', warehouse: 'Main Hub',  type: 'Addition'  },
   { id: 'ADJ-990', item: 'Hybrid Inverter 5kVA', sku: 'INV-HYB-5', qty: -1,  reason: 'Customer Return (RMA)',         date: '12 May, 09:00 AM',  warehouse: 'Secondary', type: 'Deduction' },
   { id: 'ADJ-989', item: 'Lithium Battery 100Ah', sku: 'BATT-LI-100', qty: 5,  reason: 'Received stock — GRN-2025-44', date: '10 May, 02:15 PM',  warehouse: 'Main Hub',  type: 'Addition'  },
-  { id: 'ADJ-988', item: 'DC Wire 4sqmm (100m)', sku: 'WIRE-DC-4',  qty: -3,  reason: 'Expired / Obsolete batch',    date: '8 May, 10:00 AM',   warehouse: 'Main Hub',  type: 'Deduction' },
+  { id: 'ADJ-988', item: 'DC Wire 4sqmm (100m)', sku: 'WIRE-DC-4',  qty: -3,  reason: 'Expired / Obsolete batch',    date: '08 May, 10:00 AM',   warehouse: 'Main Hub',  type: 'Deduction' },
 ];
 
 export const StockAdjustment = () => {
@@ -30,97 +21,125 @@ export const StockAdjustment = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-100/40 overflow-hidden">
-
-      {/* Header */}
-      <div className="px-6 py-5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10">
-            <Settings2 className="w-5 h-5" />
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in bg-white">
+      
+      {/* ── Page Header ── */}
+      <div className="page-header shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center bg-primary/10 rounded-lg w-8 h-8">
+            <Settings2 size={16} className="text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-slate-900 uppercase tracking-tight">Stock Adjustments</h2>
-            <p className="text-[10px] font-normal text-slate-400 mt-0.5 uppercase tracking-widest">Manual reconciliation & corrections</p>
+            <h2 className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">Stock Reconciliations</h2>
+            <p className="text-[9px] text-slate-400 font-medium uppercase tracking-[0.1em]">Manual Inventory Adjustment Ledger</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="px-5 py-2.5 bg-primary text-white text-[10px] font-medium uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
-        >
-          <Plus className="w-4 h-4" /> New Adjustment
-        </button>
-      </div>
-
-      {/* Content with Margin */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-        
-        {/* Main Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
-          
-          {/* Internal Toolbar */}
-          <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
-              <input 
-                type="text" 
-                placeholder="Search by Ref ID, Reason, or Product SKU..." 
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-normal outline-none focus:border-primary/20 transition-all"
-              />
-            </div>
-            <button className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[10px] font-medium uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all">
-              <ClipboardList className="w-4 h-4" /> Export Report
-            </button>
+        <div className="flex items-center gap-2">
+          <div className="search-bar w-64">
+            <Search size={12} className="text-slate-400" />
+            <input placeholder="Search ref, SKU or reason..." className="bg-transparent border-none outline-none text-[10.5px] w-full font-medium" />
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[950px]">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  {['Ref ID', 'Product Ledger', 'Discrepancy', 'Reason for Adjustment', 'Location', 'Auth Date', ''].map(h => (
-                    <th key={h} className="px-8 py-4 text-[10px] font-medium uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {adjustments.map((adj) => (
-                  <tr key={adj.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-8 py-5">
-                      <span className="text-xs font-bold text-slate-900 font-mono tracking-tighter italic">{adj.id}</span>
-                    </td>
-                    <td className="px-8 py-5 min-w-[200px]">
-                      <p className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors leading-none">{adj.item}</p>
-                      <p className="text-[10px] font-normal text-slate-400 mt-2 uppercase tracking-widest">SKU: {adj.sku}</p>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border',
-                          adj.type === 'Addition' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
-                        )}>
-                          {adj.type === 'Addition' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        </div>
-                        <span className={cn('text-sm font-bold', adj.type === 'Addition' ? 'text-emerald-600' : 'text-rose-600 font-mono')}>
-                          {adj.qty > 0 ? `+${adj.qty}` : adj.qty}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded border border-slate-100">{adj.reason}</span>
-                    </td>
-                    <td className="px-8 py-5 text-xs font-medium text-slate-700">{adj.warehouse}</td>
-                    <td className="px-8 py-5 text-[11px] font-normal text-slate-400">{adj.date}</td>
-                    <td className="px-8 py-5 text-right">
-                      <button className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-all">
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <button className="btn-secondary h-8 px-4 text-[9.5px] rounded-[5px]"><Filter size={11} /> Filters</button>
+          <button onClick={() => setIsAdding(true)} className="btn-primary h-8 px-5 text-[9.5px] rounded-[5px] shadow-lg shadow-primary/20">
+            <Plus size={14} /> New Adjustment
+          </button>
         </div>
       </div>
+
+      {/* ── Summary Matrix (High Density) ── */}
+      <div className="flex items-center gap-10 px-6 py-3 shrink-0 bg-slate-50/50 border-b border-slate-200">
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Total Logs</p>
+          <p className="text-[14px] font-black text-slate-900">{adjustments.length} <span className="text-[9px] text-slate-400 font-bold uppercase">Actions</span></p>
+        </div>
+        <div className="w-px h-6 bg-slate-200" />
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Net Flow MTD</p>
+          <p className="text-[14px] font-black text-emerald-600">
+            +{adjustments.reduce((s, a) => s + a.qty, 0)} <span className="text-[9px] font-bold uppercase tracking-tighter">Units</span>
+          </p>
+        </div>
+        <div className="ml-auto">
+           <div className="px-3 py-1 bg-amber-50 border border-amber-100 rounded-full flex items-center gap-2">
+              <ClipboardList size={10} className="text-amber-600" />
+              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest leading-none">AUDIT TRAIL ACTIVE</span>
+           </div>
+        </div>
+      </div>
+
+      {/* ── Adjustment Grid ── */}
+      <div className="flex-1 overflow-auto custom-scrollbar">
+        <table className="erp-table">
+          <thead>
+            <tr>
+              <th className="w-[120px]">Reference</th>
+              <th>Asset / Product Node</th>
+              <th className="w-[150px]">Discrepancy</th>
+              <th>Adjustment Rationale</th>
+              <th className="w-[150px]">Node Location</th>
+              <th className="w-[160px]">Auth Timestamp</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {adjustments.map((adj) => (
+              <tr key={adj.id} className="group">
+                <td className="font-mono text-[10px] font-black text-primary italic">{adj.id}</td>
+                <td>
+                  <div className="flex flex-col">
+                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-none mb-1">{adj.item}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Global SKU: {adj.sku}</p>
+                  </div>
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-5 h-5 rounded-[4px] flex items-center justify-center text-white shadow-sm",
+                      adj.type === 'Addition' ? "bg-emerald-600" : "bg-rose-600"
+                    )}>
+                      {adj.type === 'Addition' ? <ArrowUpRight size={11} strokeWidth={3} /> : <ArrowDownRight size={11} strokeWidth={3} />}
+                    </div>
+                    <span className={cn(
+                       "text-[12px] font-black tracking-tighter italic",
+                       adj.type === 'Addition' ? 'text-emerald-700' : 'text-rose-700'
+                    )}>
+                       {adj.qty > 0 ? `+${adj.qty}` : adj.qty}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">{adj.reason}</span>
+                </td>
+                <td>
+                   <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
+                      <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                      {adj.warehouse}
+                   </div>
+                </td>
+                <td className="text-[10px] font-bold text-slate-400 uppercase italic">
+                   {adj.date}
+                </td>
+                <td className="text-center">
+                  <button className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-slate-900 transition-colors">
+                     <MoreVertical size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+       {/* ── Fixed Footer Pagination ── */}
+       <div className="h-[42px] px-6 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+             Audit Ledger — Displaying {adjustments.length} Total Discrepancy Signals
+          </p>
+          <div className="flex items-center gap-1.5">
+             <button className="h-6 px-3 text-[9px] font-black uppercase rounded-[5px] bg-slate-900 text-white">1</button>
+          </div>
+       </div>
+
     </div>
   );
 };

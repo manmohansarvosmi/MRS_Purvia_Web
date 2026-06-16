@@ -75,35 +75,45 @@ export const SalesModule = ({ initialSubTab = 'pos' }: { initialSubTab?: string 
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
-      <div className="px-8 bg-white border-b border-slate-100 flex items-center gap-10 overflow-x-auto no-scrollbar shrink-0">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className={cn(
-              "flex items-center gap-2.5 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] py-5 transition-all relative group",
-              subTab === tab.id ? "text-primary" : "text-slate-400 hover:text-slate-600"
-            )}
-          >
-            <tab.icon className={cn(
-              "w-4 h-4 transition-colors",
-              subTab === tab.id ? "text-primary" : "text-slate-300 group-hover:text-slate-500"
-            )} />
-            {tab.label}
-            {/* badge when billing has prefilled estimate */}
-            {tab.id === 'billing' && pendingEstimate && (
-              <span className="ml-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 uppercase tracking-widest">
-                FROM EST
+      <div className="h-[42px] px-6 bg-white border-b border-slate-200 flex items-center gap-6 overflow-x-auto no-scrollbar shrink-0">
+        {tabs.map(tab => {
+          const isActive = subTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={cn(
+                "h-full flex items-center gap-2.5 px-1 whitespace-nowrap text-[10.5px] font-bold uppercase tracking-wider transition-all relative group",
+                isActive ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <div className={cn(
+                "flex items-center justify-center p-1 rounded-md transition-all duration-300",
+                isActive ? "bg-primary/5 shadow-[0_0_0_1px_rgba(200,16,46,0.1)]" : "group-hover:bg-slate-50"
+              )}>
+                <tab.icon className={cn(
+                  "w-3.5 h-3.5 transition-colors", 
+                  isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-500"
+                )} strokeWidth={isActive ? 2.5 : 2} />
+              </div>
+              
+              <span className="relative">
+                {tab.label}
+                {tab.id === 'billing' && pendingEstimate && (
+                  <span className="absolute -top-3 -right-6 bg-primary text-white text-[6px] font-black px-1 rounded-sm shadow-sm">EST</span>
+                )}
               </span>
-            )}
-            {subTab === tab.id && (
-              <motion.div
-                layoutId="active-sales-subtab"
-                className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_8px_rgba(178,0,26,0.3)]"
-              />
-            )}
-          </button>
-        ))}
+
+              {isActive && (
+                <motion.div 
+                  layoutId="active-sales-tab-indicator" 
+                  className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary rounded-t-full shadow-[0_-1px_4px_rgba(200,16,46,0.3)]"
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col">
